@@ -4,6 +4,7 @@ from sqlalchemy.orm import sessionmaker
 import psycopg2
 from dotenv import load_dotenv
 import os
+from src.database.base import Base
 
 load_dotenv()
 
@@ -42,14 +43,10 @@ except Exception as e:
     print(f"Could not create SQLAlchemy engine: {e}")
     exit(1)
 
-Base = declarative_base()
-
-# Import all models here
-from models.user import User
-from models.portfolio import Portfolio
-from models.transaction import Transaction
-from models.coin import Coin
-
-Base.metadata.create_all(bind=engine) # Create all tables if they don't exist
-
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+def init_db():
+    # Import all models here
+    from src.models import user, portfolio, transaction
+
+    Base.metadata.create_all(bind=engine)

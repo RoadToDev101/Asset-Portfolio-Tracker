@@ -1,10 +1,7 @@
 from sqlalchemy import func
 from sqlalchemy.orm import relationship, Mapped, mapped_column
-from typing import List
+from src.database.database import Base
 from datetime import datetime
-
-from database.database import Base
-from models.portfolio import Portfolio
 
 class User(Base):
     __tablename__ = "users"
@@ -17,5 +14,5 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(default=func.now())
     updated_at: Mapped[datetime] = mapped_column(default=func.now(), onupdate=func.now())
 
-    # portfolios: Mapped[List["Portfolio"]] = relationship(back_populates="owner")
     portfolios = relationship("Portfolio", back_populates="owner")
+    transactions = relationship("Transaction", back_populates="user")

@@ -1,19 +1,24 @@
 from pydantic import BaseModel, EmailStr, Field
-import datetime
+from datetime import datetime
 from .portfolio import Portfolio
 
 class UserBase(BaseModel):
     username: str = Field(..., min_length=3, max_length=50)
-    email: EmailStr
+    email: EmailStr = Field(..., max_length=254)
 
 class UserCreate(UserBase):
     password: str = Field(..., min_length=8, max_length=50)
 
+class UserUpdate(UserBase):
+    username: str = Field(None, min_length=3, max_length=50)
+    email: EmailStr = Field(None, max_length=254)
+    is_active: bool = Field(None)
+
 class User(UserBase):
     id: int
     is_active: bool
-    created_at: datetime.datetime
-    updated_at: datetime.datetime
+    created_at: datetime
+    updated_at: datetime
     portfolios: list[Portfolio] = []
 
     class Config:

@@ -1,24 +1,19 @@
-from fastapi import FastAPI, HTTPException, Depends
-import uvicorn
-from database.database import Base, engine, SessionLocal
-from schemas.user import User as UserSchema
-from schemas.user import UserCreate
-from controllers.user import UserController
-from sqlalchemy.orm import Session
+from fastapi import FastAPI
+from src.routes import user
+from src.database.database import init_db
 from fastapi.middleware.cors import CORSMiddleware
-
-Base.metadata.create_all(bind=engine)
 
 # Create a FastAPI app
 app = FastAPI()
 
-origins = [
-    "http://localhost:3000",
-    "localhost:3000",
-    "http://localhost",
-]
+# Initialize the database
+try:
+    init_db()
+except Exception as e:
+    print("Error initializing database: ", e)
 
-# Add CORS middleware
+# Set up CORS middleware
+origins = ["http://localhost:3000", "localhost:3000", "http://localhost"]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
@@ -27,29 +22,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-# Define the routes
-@app.get("/")
-async def root():
-    return {"message": "Hello World"}
-
-@app.get("/users/{user_id}", response_model=UserSchema)
-async def read_user(user_id: int, db: Session = Depends(get_db)):
-    db_user = UserController.get_user_by_id(db, user_id = user_id)
-    if db_user is None:
-        raise HTTPException(status_code=404, detail="User not found")
-    return db_user
-
-@app.post("/users")
-async def sign_up(user: UserCreate, db: Session = Depends(get_db)):
-    return UserController.create_user(db, user = user)
-
-# Run the application
-if __name__ == '__main__':
-    uvicorn.run(app, host='127.0.0.1', port=8000)
+# Include routers from the routes module
+# app.include_router(home.router)
+app.include_router(user.router)

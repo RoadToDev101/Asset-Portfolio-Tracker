@@ -1,7 +1,7 @@
 from sqlalchemy import ForeignKey, func
 from sqlalchemy.orm import relationship, Mapped, mapped_column
+from src.database.database import Base
 from datetime import datetime
-from database.database import Base
 
 class Portfolio(Base):
     __tablename__ = "portfolios"
