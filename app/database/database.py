@@ -4,7 +4,7 @@ from sqlalchemy.orm import sessionmaker
 import psycopg2
 from dotenv import load_dotenv
 import os
-from src.database.base import Base
+from app.database.base import Base
 
 load_dotenv()
 
@@ -47,6 +47,6 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 def init_db():
     # Import all models here
-    from src.models import user, portfolio, transaction
+    from app.models import user, portfolio, transaction
 
     Base.metadata.create_all(bind=engine)

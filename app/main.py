@@ -1,6 +1,6 @@
 from fastapi import FastAPI
-from src.routes import user
-from src.database.database import init_db
+from app.routes import user
+from app.database.database import init_db
 from fastapi.middleware.cors import CORSMiddleware
 
 # Create a FastAPI app

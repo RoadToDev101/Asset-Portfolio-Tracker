@@ -1,6 +1,6 @@
 from sqlalchemy import ForeignKey, func
 from sqlalchemy.orm import relationship, Mapped, mapped_column
-from src.database.database import Base
+from app.database.database import Base
 from datetime import datetime
 
 class Portfolio(Base):

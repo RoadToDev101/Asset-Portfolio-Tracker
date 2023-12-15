@@ -2,7 +2,7 @@ from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import func
 from enum import Enum as PyEnum
-from src.database.database import Base
+from app.database.database import Base
 from datetime import datetime
 
 class TransactionType(PyEnum):

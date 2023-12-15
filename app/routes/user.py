@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from sqlalchemy.orm import Session
-from src.dependencies import get_db
-from src.controllers.user import UserController
-from src.schemas.user import UserCreate, UserUpdate, User as UserSchema
-from src.models.user import User as UserModel
-from src.utils.pagination import Pagination
+from app.dependencies import get_db
+from app.controllers.user import UserController
+from app.schemas.user import UserCreate, UserUpdate, User as UserSchema
+from app.models.user import User as UserModel
+from app.utils.pagination import Pagination
 
 router = APIRouter()
 

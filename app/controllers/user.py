@@ -1,7 +1,7 @@
 import bcrypt
 from sqlalchemy.orm import Session
-from src.schemas.user import UserCreate, UserUpdate
-from src.models.user import User as UserModel
+from app.schemas.user import UserCreate, UserUpdate
+from app.models.user import User as UserModel
 
 class UserController():
     @staticmethod
