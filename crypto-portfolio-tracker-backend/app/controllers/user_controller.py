@@ -1,4 +1,6 @@
 import bcrypt
+from psycopg2.errors import UniqueViolation
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from app.schemas.user_schema import UserCreate, UserUpdate, UserOut
 from app.models.user_model import User as UserModel
@@ -23,7 +25,7 @@ class UserController:
         return {"access_token": access_token, "token_type": "bearer", "user": user_out}
 
     @staticmethod
-    def create_user(db: Session, user: UserCreate) -> None | UserModel:
+    def create_user(db: Session, user: UserCreate) -> UserOut:
         # Check if the user already exists
         existing_user = (
             db.query(UserModel)
@@ -49,31 +51,43 @@ class UserController:
             username=user.username, email=user.email, hashed_password=hashed_password
         )
 
-        # Add the user to the database and commit
+        # Add the user to the database
         db.add(new_user)
-        db.commit()
+
+        try:
+            db.commit()
+        except IntegrityError as e:
+            db.rollback()  # Roll back the transaction on error
+            if isinstance(e.orig, UniqueViolation):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Username or email already exists",
+                )
+            else:
+                raise  # Re-raise the exception if it's not a UniqueViolation
+
         db.refresh(
             new_user
-        )  # This will populate the new_user with all fields including id, created_at, etc.
+        )  # Populate the new_user with all fields including id, created_at, etc.
 
         user_out = UserOut.model_validate(
             new_user
-        )  # This will convert the SQLAlchemy model to a Pydantic model
+        )  # Convert the SQLAlchemy model to a Pydantic model
 
         return user_out
 
     @staticmethod
-    def get_user_by_id(db: Session, user_id: int) -> None | UserModel:
+    def get_user_by_id(db: Session, user_id: int) -> None | UserOut:
         return db.query(UserModel).filter(UserModel.id == user_id).first()
 
     @staticmethod
-    def get_users(db: Session, skip: int = 0, limit: int = 10) -> list[UserModel]:
+    def get_users(db: Session, skip: int = 0, limit: int = 10) -> list[UserOut]:
         return db.query(UserModel).offset(skip).limit(limit).all()
 
     @staticmethod
     def update_user_by_id(
         db: Session, user_id: int, user: UserUpdate
-    ) -> None | UserModel:
+    ) -> None | UserOut:
         db_user = db.query(UserModel).filter(UserModel.id == user_id).first()
 
         if db_user is None:
@@ -81,31 +95,29 @@ class UserController:
                 status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
             )
 
-        # Check if username or email already exists for another user
-        existing_user = (
-            db.query(UserModel)
-            .filter(
-                UserModel.id != user_id,
-                (UserModel.username == user.username) | (UserModel.email == user.email),
-            )
-            .first()
-        )
+        try:
+            # Update the user attributes
+            if user.username:
+                db_user.username = user.username
+            if user.email:
+                db_user.email = user.email
+            if user.is_active is not None:
+                db_user.is_active = user.is_active
 
-        if existing_user:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Username or email already exists",
-            )
+            db.commit()
+        except IntegrityError as e:
+            db.rollback()
+            if isinstance(e.orig, UniqueViolation):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Username or email already exists",
+                )
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Failed to update user",
+                )
 
-        # Update the user attributes
-        if user.username:
-            db_user.username = user.username
-        if user.email:
-            db_user.email = user.email
-        if user.is_active is not None:
-            db_user.is_active = user.is_active
-
-        db.commit()
         db.refresh(db_user)
 
         user_out = UserOut.model_validate(db_user)

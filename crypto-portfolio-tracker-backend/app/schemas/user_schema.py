@@ -13,6 +13,8 @@ class UserCreate(UserBase):
 
 
 class UserUpdate(UserBase):
+    username: str = Field(None, min_length=3, max_length=50)
+    email: EmailStr = Field(None, max_length=254)
     is_active: bool = Field(None)
 
 
