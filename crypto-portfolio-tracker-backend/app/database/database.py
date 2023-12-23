@@ -19,7 +19,7 @@ try:
         dbname="postgres",
         user=POSTGRES_USER,
         password=POSTGRES_PASSWORD,
-        host=POSTGRES_HOST
+        host=POSTGRES_HOST,
     )
 except psycopg2.OperationalError as e:
     print(f"Could not connect to the PostgreSQL server: {e}")
@@ -35,7 +35,9 @@ if (POSTGRES_DB,) not in list_database:
 cur.close()
 conn.close()
 
-SQLALCHEMY_DATABASE_URL = f'postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}/{POSTGRES_DB}'
+SQLALCHEMY_DATABASE_URL = (
+    f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}/{POSTGRES_DB}"
+)
 
 try:
     engine = create_engine(SQLALCHEMY_DATABASE_URL)
@@ -45,8 +47,9 @@ except Exception as e:
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
+
 def init_db():
     # Import all models here
-    from app.models import user, portfolio, transaction
+    from app.models import user_model, portfolio_model, transaction_model
 
     Base.metadata.create_all(bind=engine)

@@ -3,6 +3,7 @@ from sqlalchemy.orm import relationship, Mapped, mapped_column
 from app.database.database import Base
 from datetime import datetime
 
+
 class User(Base):
     __tablename__ = "users"
 
@@ -12,7 +13,9 @@ class User(Base):
     hashed_password: Mapped[str] = mapped_column()
     is_active: Mapped[bool] = mapped_column(default=True)
     created_at: Mapped[datetime] = mapped_column(default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(default=func.now(), onupdate=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        default=func.now(), onupdate=func.now()
+    )
 
     portfolios = relationship("Portfolio", back_populates="owner")
     transactions = relationship("Transaction", back_populates="user")
