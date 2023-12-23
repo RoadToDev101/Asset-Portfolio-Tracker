@@ -1,31 +1,52 @@
-import bcrypt
+from passlib.context import CryptContext
 from psycopg2.errors import UniqueViolation
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from app.schemas.user_schema import UserCreate, UserUpdate, UserOut
 from app.models.user_model import User as UserModel
+from app.utils.access_token import TokenWithData
 import datetime
 from app.utils.jwt import create_access_token
 from fastapi import HTTPException, status
+from uuid import UUID
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+
+def get_password_hash(password: str) -> str:
+    return pwd_context.hash(password)
+
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    return pwd_context.verify(plain_password, hashed_password)
 
 
 class UserController:
     @staticmethod
-    def authenticate_user(db: Session, username: str, password: str):
+    def authenticate_user(db: Session, username: str, password: str) -> TokenWithData:
         user = db.query(UserModel).filter(UserModel.username == username).first()
-        if not user or not bcrypt.checkpw(
-            password.encode("utf-8"), user.hashed_password.encode("utf-8")
-        ):
-            return None
+
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+            )
+        if not verify_password(password, user.hashed_password):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect password"
+            )
+
         access_token_expires = datetime.timedelta(minutes=30)
         access_token = create_access_token(
             data={"sub": user.id}, expires_delta=access_token_expires
         )
-        user_out = UserOut.model_validate(user)
-        return {"access_token": access_token, "token_type": "bearer", "user": user_out}
+
+        token_data = TokenWithData(
+            access_token=access_token, token_type="bearer", user_id=user.id
+        )
+        return token_data
 
     @staticmethod
-    def create_user(db: Session, user: UserCreate) -> UserOut:
+    def create_user(db: Session, user: UserCreate) -> None | UserOut:
         # Check if the user already exists
         existing_user = (
             db.query(UserModel)
@@ -42,9 +63,7 @@ class UserController:
             )
 
         # Hash the password
-        hashed_password = bcrypt.hashpw(
-            user.password.encode("utf-8"), bcrypt.gensalt()
-        ).decode("utf-8")
+        hashed_password = get_password_hash(user.password)
 
         # Create the user
         new_user = UserModel(
@@ -56,6 +75,7 @@ class UserController:
 
         try:
             db.commit()
+            db.refresh(new_user)
         except IntegrityError as e:
             db.rollback()  # Roll back the transaction on error
             if isinstance(e.orig, UniqueViolation):
@@ -66,10 +86,6 @@ class UserController:
             else:
                 raise  # Re-raise the exception if it's not a UniqueViolation
 
-        db.refresh(
-            new_user
-        )  # Populate the new_user with all fields including id, created_at, etc.
-
         user_out = UserOut.model_validate(
             new_user
         )  # Convert the SQLAlchemy model to a Pydantic model
@@ -77,16 +93,16 @@ class UserController:
         return user_out
 
     @staticmethod
-    def get_user_by_id(db: Session, user_id: int) -> None | UserOut:
+    def get_user_by_id(db: Session, user_id: UUID) -> None | UserOut:
         return db.query(UserModel).filter(UserModel.id == user_id).first()
 
     @staticmethod
-    def get_users(db: Session, skip: int = 0, limit: int = 10) -> list[UserOut]:
+    def get_users(db: Session, skip: int = 0, limit: int = 10) -> None | list[UserOut]:
         return db.query(UserModel).offset(skip).limit(limit).all()
 
     @staticmethod
     def update_user_by_id(
-        db: Session, user_id: int, user: UserUpdate
+        db: Session, user_id: UUID, user: UserUpdate
     ) -> None | UserOut:
         db_user = db.query(UserModel).filter(UserModel.id == user_id).first()
 
@@ -105,6 +121,7 @@ class UserController:
                 db_user.is_active = user.is_active
 
             db.commit()
+            db.refresh(db_user)
         except IntegrityError as e:
             db.rollback()
             if isinstance(e.orig, UniqueViolation):
@@ -118,13 +135,11 @@ class UserController:
                     detail="Failed to update user",
                 )
 
-        db.refresh(db_user)
-
         user_out = UserOut.model_validate(db_user)
         return user_out
 
     @staticmethod
-    def delete_user_by_id(db: Session, user_id: int) -> None | str:
+    def delete_user_by_id(db: Session, user_id: UUID) -> None | str:
         db.query(UserModel).filter(UserModel.id == user_id).delete()
         db.commit()
         return "User deleted successfully"

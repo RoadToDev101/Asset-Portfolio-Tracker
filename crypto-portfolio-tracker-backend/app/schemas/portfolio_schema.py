@@ -1,5 +1,6 @@
-from pydantic import BaseModel
-import datetime
+from pydantic import BaseModel, Field
+from datetime import datetime
+from uuid import UUID
 
 
 class PortfolioBase(BaseModel):
@@ -8,14 +9,21 @@ class PortfolioBase(BaseModel):
 
 
 class PortfolioCreate(PortfolioBase):
-    pass
+    name: str = Field(..., min_length=3, max_length=50)
+    description: str | None = Field(None, max_length=254)
+    user_id: UUID = Field(...)
 
 
-class Portfolio(PortfolioBase):
+class PortfolioUpdate(PortfolioBase):
+    name: str = Field(None, min_length=3, max_length=50)
+    description: str | None = Field(None, max_length=254)
+
+
+class PortfolioOut(PortfolioBase):
     id: int
-    user_id: int
-    created_at: datetime.datetime
-    updated_at: datetime.datetime
+    user_id: UUID
+    created_at: datetime
+    updated_at: datetime
 
     class Config:
         from_attributes = True

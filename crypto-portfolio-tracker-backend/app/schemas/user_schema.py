@@ -1,6 +1,7 @@
 from pydantic import BaseModel, EmailStr, Field
 from datetime import datetime
-from .portfolio_schema import Portfolio
+from .portfolio_schema import PortfolioOut
+from uuid import UUID
 
 
 class UserBase(BaseModel):
@@ -19,11 +20,11 @@ class UserUpdate(UserBase):
 
 
 class UserOut(UserBase):
-    id: int
+    id: UUID
     is_active: bool
     created_at: datetime
     updated_at: datetime
-    portfolios: list[Portfolio] = []
+    portfolios: list[PortfolioOut] = []
 
     class Config:
         from_attributes = True

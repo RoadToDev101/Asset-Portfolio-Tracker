@@ -18,10 +18,12 @@ class Transaction(Base):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement="auto", index=True)
     transaction_type: Mapped[TransactionType] = mapped_column(nullable=False)
     coin_symbol: Mapped[str] = mapped_column(nullable=False)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
     amount: Mapped[float] = mapped_column(nullable=False)
     price_per_token: Mapped[float] = mapped_column(nullable=False)
-    portfolio_id: Mapped[int] = mapped_column(ForeignKey("portfolios.id"))
+    portfolio_id: Mapped[int] = mapped_column(
+        ForeignKey("portfolios.id"), nullable=False
+    )
     created_at: Mapped[datetime] = mapped_column(default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         default=func.now(), onupdate=func.now()

@@ -7,8 +7,13 @@ from app.schemas.user_schema import UserCreate, UserUpdate, UserOut
 from app.models.user_model import User as UserModel
 from app.utils.pagination import Pagination
 from app.utils.jwt import create_access_token
-import datetime
-from app.dependencies import get_current_active_user
+from datetime import timedelta
+from app.dependencies import get_current_user
+from uuid import UUID
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 router = APIRouter()
 
@@ -20,7 +25,9 @@ async def register(user: UserCreate, db: Session = Depends(get_db)):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Failed to register user"
         )
-    access_token_expires = datetime.timedelta(minutes=30)
+    access_token_expires = timedelta(
+        minutes=int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES"))
+    )
     access_token = create_access_token(
         data={"sub": new_user.id}, expires_delta=access_token_expires
     )
@@ -49,9 +56,9 @@ async def login(
 
 @router.get("/users/{user_id}", response_model=UserOut)
 async def get_user(
-    user_id: int = Path(gt=0),
+    user_id: UUID,
     db: Session = Depends(get_db),
-    current_user: UserOut = Depends(get_current_active_user),
+    current_user: UserOut = Depends(get_current_user),
 ):
     if current_user.id != user_id:
         raise HTTPException(
@@ -70,7 +77,7 @@ async def get_all_users(
     page: int = Query(gt=0),
     page_size: int = Query(gt=0),
     db: Session = Depends(get_db),
-    current_user: UserOut = Depends(get_current_active_user),
+    current_user: UserOut = Depends(get_current_user),
 ):
     skip = (page - 1) * page_size
     users = UserController.get_users(db, skip=skip, limit=page_size)
@@ -84,10 +91,10 @@ async def get_all_users(
 
 @router.patch("/users/{user_id}")
 async def update_user(
-    user_id: int,
+    user_id: UUID,
     user: UserUpdate,
     db: Session = Depends(get_db),
-    current_user: UserOut = Depends(get_current_active_user),
+    current_user: UserOut = Depends(get_current_user),
 ):
     if current_user.id != user_id:
         raise HTTPException(
@@ -103,9 +110,9 @@ async def update_user(
 
 @router.delete("/users/{user_id}")
 async def delete_user(
-    user_id: int,
+    user_id: UUID,
     db: Session = Depends(get_db),
-    current_user: UserOut = Depends(get_current_active_user),
+    current_user: UserOut = Depends(get_current_user),
 ):
     # if current_user.id != user_id:
     #     raise HTTPException(status_code=403, detail="Not enough permissions")
