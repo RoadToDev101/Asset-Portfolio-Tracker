@@ -3,7 +3,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from app.dependencies import get_db
 from app.controllers.user_controller import UserController
-from app.schemas.user_schema import UserCreate, UserUpdate, User as UserSchema
+from app.schemas.user_schema import UserCreate, UserUpdate, UserOut
 from app.models.user_model import User as UserModel
 from app.utils.pagination import Pagination
 from app.utils.jwt import create_access_token
@@ -47,11 +47,11 @@ async def login(
     return authenticated_user
 
 
-@router.get("/users/{user_id}", response_model=UserSchema)
+@router.get("/users/{user_id}", response_model=UserOut)
 async def get_user(
     user_id: int = Path(gt=0),
     db: Session = Depends(get_db),
-    current_user: UserSchema = Depends(get_current_active_user),
+    current_user: UserOut = Depends(get_current_active_user),
 ):
     if current_user.id != user_id:
         raise HTTPException(
@@ -65,12 +65,12 @@ async def get_user(
     return user
 
 
-@router.get("/users", response_model=Pagination[UserSchema])
+@router.get("/users", response_model=Pagination[UserOut])
 async def get_all_users(
     page: int = Query(gt=0),
     page_size: int = Query(gt=0),
     db: Session = Depends(get_db),
-    current_user: UserSchema = Depends(get_current_active_user),
+    current_user: UserOut = Depends(get_current_active_user),
 ):
     skip = (page - 1) * page_size
     users = UserController.get_users(db, skip=skip, limit=page_size)
@@ -79,7 +79,7 @@ async def get_all_users(
             status_code=status.HTTP_404_NOT_FOUND, detail="Users not found"
         )
     total = db.query(UserModel).count()
-    return Pagination[UserSchema].create(users, page, page_size, total)
+    return Pagination[UserOut].create(users, page, page_size, total)
 
 
 @router.patch("/users/{user_id}")
@@ -87,7 +87,7 @@ async def update_user(
     user_id: int,
     user: UserUpdate,
     db: Session = Depends(get_db),
-    current_user: UserSchema = Depends(get_current_active_user),
+    current_user: UserOut = Depends(get_current_active_user),
 ):
     if current_user.id != user_id:
         raise HTTPException(
@@ -105,7 +105,7 @@ async def update_user(
 async def delete_user(
     user_id: int,
     db: Session = Depends(get_db),
-    current_user: UserSchema = Depends(get_current_active_user),
+    current_user: UserOut = Depends(get_current_active_user),
 ):
     # if current_user.id != user_id:
     #     raise HTTPException(status_code=403, detail="Not enough permissions")

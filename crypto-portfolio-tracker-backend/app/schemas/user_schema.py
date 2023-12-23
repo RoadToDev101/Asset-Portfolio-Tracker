@@ -16,7 +16,7 @@ class UserUpdate(UserBase):
     is_active: bool = Field(None)
 
 
-class User(UserBase):
+class UserOut(UserBase):
     id: int
     is_active: bool
     created_at: datetime

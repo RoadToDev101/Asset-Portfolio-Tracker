@@ -1,6 +1,6 @@
 import bcrypt
 from sqlalchemy.orm import Session
-from app.schemas.user_schema import UserCreate, UserUpdate, User
+from app.schemas.user_schema import UserCreate, UserUpdate, UserOut
 from app.models.user_model import User as UserModel
 import datetime
 from app.utils.jwt import create_access_token
@@ -19,7 +19,7 @@ class UserController:
         access_token = create_access_token(
             data={"sub": user.id}, expires_delta=access_token_expires
         )
-        user_out = User.model_validate(user)
+        user_out = UserOut.model_validate(user)
         return {"access_token": access_token, "token_type": "bearer", "user": user_out}
 
     @staticmethod
@@ -56,7 +56,7 @@ class UserController:
             new_user
         )  # This will populate the new_user with all fields including id, created_at, etc.
 
-        user_out = User.model_validate(
+        user_out = UserOut.model_validate(
             new_user
         )  # This will convert the SQLAlchemy model to a Pydantic model
 
@@ -108,7 +108,7 @@ class UserController:
         db.commit()
         db.refresh(db_user)
 
-        user_out = User.model_validate(db_user)
+        user_out = UserOut.model_validate(db_user)
         return user_out
 
     @staticmethod
