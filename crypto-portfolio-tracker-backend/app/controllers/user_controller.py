@@ -1,6 +1,6 @@
 from passlib.context import CryptContext
 from psycopg2.errors import UniqueViolation
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 from app.schemas.user_schema import UserCreate, UserUpdate, UserOut
 from app.models.user_model import User as UserModel
@@ -32,7 +32,9 @@ class UserController:
             )
         if not verify_password(password, user.hashed_password):
             raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect password"
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Incorrect username or password",
+                headers={"WWW-Authenticate": "Bearer"},
             )
 
         access_token_expires = datetime.timedelta(minutes=30)
@@ -46,22 +48,7 @@ class UserController:
         return token_data
 
     @staticmethod
-    def create_user(db: Session, user: UserCreate) -> None | UserOut:
-        # Check if the user already exists
-        existing_user = (
-            db.query(UserModel)
-            .filter(
-                (UserModel.username == user.username) | (UserModel.email == user.email)
-            )
-            .first()
-        )
-
-        if existing_user is not None:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Username or email already exists",
-            )
-
+    def create_user(db: Session, user: UserCreate) -> UserOut:
         # Hash the password
         hashed_password = get_password_hash(user.password)
 
@@ -84,7 +71,10 @@ class UserController:
                     detail="Username or email already exists",
                 )
             else:
-                raise  # Re-raise the exception if it's not a UniqueViolation
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Failed to create user",
+                )
 
         user_out = UserOut.model_validate(
             new_user
@@ -93,33 +83,42 @@ class UserController:
         return user_out
 
     @staticmethod
-    def get_user_by_id(db: Session, user_id: UUID) -> None | UserOut:
-        return db.query(UserModel).filter(UserModel.id == user_id).first()
+    def get_user_by_id(db: Session, user_id: UUID) -> UserOut:
+        user = db.query(UserModel).get(user_id)
+        if user is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+            )
+        user_out = UserOut.model_validate(user)
+        return user_out
 
     @staticmethod
-    def get_users(db: Session, skip: int = 0, limit: int = 10) -> None | list[UserOut]:
-        return db.query(UserModel).offset(skip).limit(limit).all()
+    def get_users(db: Session, skip: int = 0, limit: int = 10) -> list[UserOut]:
+        try:
+            return db.query(UserModel).offset(skip).limit(limit).all()
+        except SQLAlchemyError:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="An error occurred while fetching users",
+            )
 
     @staticmethod
-    def update_user_by_id(
-        db: Session, user_id: UUID, user: UserUpdate
-    ) -> None | UserOut:
-        db_user = db.query(UserModel).filter(UserModel.id == user_id).first()
-
+    def update_user_by_id(db: Session, user_id: UUID, user: UserUpdate) -> UserOut:
+        db_user = db.query(UserModel).get(user_id)
         if db_user is None:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
             )
 
-        try:
-            # Update the user attributes
-            if user.username:
-                db_user.username = user.username
-            if user.email:
-                db_user.email = user.email
-            if user.is_active is not None:
-                db_user.is_active = user.is_active
+        # Update the user attributes
+        if user.username:
+            db_user.username = user.username
+        if user.email:
+            db_user.email = user.email
+        if user.is_active is not None:
+            db_user.is_active = user.is_active
 
+        try:
             db.commit()
             db.refresh(db_user)
         except IntegrityError as e:
@@ -136,10 +135,23 @@ class UserController:
                 )
 
         user_out = UserOut.model_validate(db_user)
+
         return user_out
 
     @staticmethod
-    def delete_user_by_id(db: Session, user_id: UUID) -> None | str:
-        db.query(UserModel).filter(UserModel.id == user_id).delete()
-        db.commit()
+    def delete_user_by_id(db: Session, user_id: UUID) -> str:
+        user = db.query(UserModel).get(user_id)
+        if user is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+            )
+        db.delete(user)
+        try:
+            db.commit()
+        except IntegrityError:
+            db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Failed to delete user",
+            )
         return "User deleted successfully"

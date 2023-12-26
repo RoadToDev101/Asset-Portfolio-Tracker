@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from app.routes import user_route
+from app.routes import user_route, authentication_route
 from app.database.database import init_db
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -24,3 +24,4 @@ app.add_middleware(
 
 # Include routers from the routes module
 app.include_router(user_route.router)
+app.include_router(authentication_route.router)
