@@ -54,7 +54,10 @@ class UserController:
 
         # Create the user
         new_user = UserModel(
-            username=user.username, email=user.email, hashed_password=hashed_password
+            username=user.username,
+            email=user.email,
+            hashed_password=hashed_password,
+            role=user.role,
         )
 
         # Add the user to the database
@@ -73,7 +76,7 @@ class UserController:
             else:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Failed to create user",
+                    detail=f"Failed to create user: {e.orig}",
                 )
 
         user_out = UserOut.model_validate(
@@ -117,6 +120,8 @@ class UserController:
             db_user.email = user.email
         if user.is_active is not None:
             db_user.is_active = user.is_active
+        if user.role and (db_user.role != "user"):
+            db_user.role = user.role
 
         try:
             db.commit()
@@ -145,6 +150,7 @@ class UserController:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
             )
+
         db.delete(user)
         try:
             db.commit()

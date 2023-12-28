@@ -9,6 +9,7 @@ from app.utils.access_token import TokenWithData
 from jose import JWTError
 from typing import Annotated
 from uuid import UUID
+from app.schemas.user_schema import UserRole
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
@@ -49,5 +50,22 @@ async def get_current_active_user(
     current_user: Annotated[UserOut, Depends(get_current_user)]
 ):
     if current_user.disabled:
-        raise HTTPException(status_code=400, detail="Inactive user")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Inactive user"
+        )
+    return current_user
+
+
+async def get_current_active_admin(
+    current_user: Annotated[UserOut, Depends(get_current_user)]
+):
+    if current_user.disabled:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Inactive user"
+        )
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="The user does not have enough privileges",
+        )
     return current_user

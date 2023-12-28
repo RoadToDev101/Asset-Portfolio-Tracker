@@ -2,10 +2,10 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from app.dependencies import get_db
 from app.controllers.user_controller import UserController
-from app.schemas.user_schema import UserCreate, UserUpdate, UserOut
+from app.schemas.user_schema import UserUpdate, UserOut
 from app.models.user_model import User as UserModel
 from app.utils.pagination import Pagination
-from app.dependencies import get_current_user
+from app.dependencies import get_current_user, get_current_active_admin
 from uuid import UUID
 from app.utils.api_response import ApiResponse
 
@@ -22,7 +22,7 @@ async def get_user(
     db: Session = Depends(get_db),
     current_user: UserOut = Depends(get_current_user),
 ):
-    if current_user.id != user_id:
+    if current_user.role != "admin" and current_user.id != user_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, detail="Not enough permissions"
         )
@@ -31,7 +31,10 @@ async def get_user(
 
 
 @router.get(
-    "/", status_code=status.HTTP_200_OK, response_model=ApiResponse[Pagination[UserOut]]
+    "/",
+    status_code=status.HTTP_200_OK,
+    response_model=ApiResponse[Pagination[UserOut]],
+    dependencies=[Depends(get_current_active_admin)],
 )
 async def get_all_users(
     page: int = Query(gt=0),
@@ -76,9 +79,6 @@ async def update_user(
 async def delete_user(
     user_id: UUID,
     db: Session = Depends(get_db),
-    # current_user: UserOut = Depends(get_current_user),
 ):
-    # if current_user.id != user_id:
-    #     raise HTTPException(status_code=403, detail="Not enough permissions")
     message = UserController.delete_user_by_id(db, user_id=user_id)
     return ApiResponse[str].with_message(message=message)
