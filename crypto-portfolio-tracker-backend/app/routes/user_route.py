@@ -8,6 +8,7 @@ from app.utils.pagination import Pagination
 from app.dependencies import get_current_user, get_current_active_admin
 from uuid import UUID
 from app.utils.api_response import ApiResponse
+from app.utils.custom_exceptions import ForbiddenException
 
 router = APIRouter(
     prefix="/api/v1/users", tags=["Users"], dependencies=[Depends(get_current_user)]
@@ -23,9 +24,7 @@ async def get_user(
     current_user: UserOut = Depends(get_current_user),
 ):
     if current_user.role != "admin" and current_user.id != user_id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="Not enough permissions"
-        )
+        raise ForbiddenException
     user = UserController.get_user_by_id(db, user_id=user_id)
     return ApiResponse[UserOut].success_response(data=user)
 
@@ -62,9 +61,7 @@ async def update_user(
     current_user: UserOut = Depends(get_current_user),
 ):
     if current_user.id != user_id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="Not enough permissions"
-        )
+        raise ForbiddenException
 
     update_user = UserController.update_user_by_id(db, user_id=user_id, user=user)
 

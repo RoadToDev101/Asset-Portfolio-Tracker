@@ -1,23 +1,23 @@
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from app.database.database import SessionLocal
 from app.controllers.user_controller import UserController
 from app.schemas.user_schema import UserOut
 from app.utils.jwt import decode_access_token
-from app.utils.access_token import TokenWithData
 from jose import JWTError
 from typing import Annotated
 from uuid import UUID
 from app.schemas.user_schema import UserRole
+from app.utils.custom_exceptions import (
+    CredentialsException,
+    BadRequestException,
+    ForbiddenException,
+)
+
+# from app.utils.access_token import TokenWithData
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
-
-credentials_exception = HTTPException(
-    status_code=status.HTTP_401_UNAUTHORIZED,
-    detail="Could not validate credentials",
-    headers={"WWW-Authenticate": "Bearer"},
-)
 
 
 def get_db():
@@ -35,37 +35,30 @@ async def get_current_user(
         payload = decode_access_token(token)
         user_id: UUID = payload.get("sub")
         if user_id is None:
-            raise credentials_exception
+            raise CredentialsException
         # token_data = TokenWithData(user_id=user_id)  # Not needed if you only use user_id
     except JWTError:
-        raise credentials_exception
+        raise CredentialsException
 
     user = UserController.get_user_by_id(db, user_id=user_id)
     if user is None:
-        raise credentials_exception
+        raise CredentialsException
     return user
 
 
 async def get_current_active_user(
     current_user: Annotated[UserOut, Depends(get_current_user)]
 ):
-    if current_user.disabled:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Inactive user"
-        )
+    if not current_user.is_active:
+        raise BadRequestException("Inactive user")
     return current_user
 
 
 async def get_current_active_admin(
     current_user: Annotated[UserOut, Depends(get_current_user)]
 ):
-    if current_user.disabled:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Inactive user"
-        )
+    if not current_user.is_active:
+        raise BadRequestException("Inactive user")
     if current_user.role != UserRole.ADMIN:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="The user does not have enough privileges",
-        )
+        raise ForbiddenException()
     return current_user

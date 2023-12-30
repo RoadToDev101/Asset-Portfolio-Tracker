@@ -7,9 +7,14 @@ from app.models.user_model import User as UserModel
 from app.utils.access_token import TokenWithData
 import datetime
 from app.utils.jwt import create_access_token
-from fastapi import HTTPException, status
 from uuid import UUID
 import logging
+from app.utils.common_utils import remove_private_attributes
+from app.utils.custom_exceptions import (
+    CredentialsException,
+    NotFoundException,
+    BadRequestException,
+)
 
 logging.getLogger("passlib").setLevel(logging.ERROR)
 
@@ -30,15 +35,9 @@ class UserController:
         user = db.query(UserModel).filter(UserModel.username == username).first()
 
         if not user:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
-            )
+            raise NotFoundException("User not found. Please register")
         if not verify_password(password, user.hashed_password):
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Incorrect username or password",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
+            raise CredentialsException("Incorrect username or password")
 
         access_token_expires = datetime.timedelta(minutes=30)
         access_token = create_access_token(
@@ -72,19 +71,13 @@ class UserController:
         except IntegrityError as e:
             db.rollback()  # Roll back the transaction on error
             if isinstance(e.orig, UniqueViolation):
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Username or email already exists",
-                )
+                raise BadRequestException("Username or email already exists")
             else:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Failed to create user: {e.orig}",
-                )
+                raise BadRequestException(f"Failed to create user: {e.orig}")
 
-        user_dict = {
-            k: v for k, v in new_user.__dict__.items() if not k.startswith("_")
-        }  # Remove private attributes from the user object
+        user_dict = remove_private_attributes(
+            new_user
+        )  # Remove private attributes from the user object
 
         user_out = UserOut.model_validate(user_dict)
 
@@ -94,29 +87,29 @@ class UserController:
     def get_user_by_id(db: Session, user_id: UUID) -> UserOut:
         user = db.query(UserModel).get(user_id)
         if user is None:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
-            )
-        user_out = UserOut.model_validate(user)
+            raise NotFoundException("User not found")
+        user_dict = remove_private_attributes(user)
+        user_out = UserOut.model_validate(user_dict)
         return user_out
 
     @staticmethod
     def get_users(db: Session, skip: int = 0, limit: int = 10) -> list[UserOut]:
         try:
-            return db.query(UserModel).offset(skip).limit(limit).all()
+            users = db.query(UserModel).offset(skip).limit(limit).all()
+            results = []
+            for user in users:
+                user_dict = remove_private_attributes(user)
+                user_out = UserOut.model_validate(user_dict)
+                results.append(user_out)
+            return results
         except SQLAlchemyError:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="An error occurred while fetching users",
-            )
+            raise BadRequestException("Failed to retrieve users")
 
     @staticmethod
     def update_user_by_id(db: Session, user_id: UUID, user: UserUpdate) -> UserOut:
         db_user = db.query(UserModel).get(user_id)
         if db_user is None:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
-            )
+            raise NotFoundException("User not found")
 
         # Update the user attributes
         if user.username:
@@ -134,17 +127,11 @@ class UserController:
         except IntegrityError as e:
             db.rollback()
             if isinstance(e.orig, UniqueViolation):
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Username or email already exists",
-                )
+                raise BadRequestException("Username or email already exists")
             else:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Failed to update user",
-                )
-
-        user_out = UserOut.model_validate(db_user)
+                raise BadRequestException(f"Failed to update user: {e.orig}")
+        user_dict = remove_private_attributes(db_user)
+        user_out = UserOut.model_validate(user_dict)
 
         return user_out
 
@@ -152,17 +139,12 @@ class UserController:
     def delete_user_by_id(db: Session, user_id: UUID) -> str:
         user = db.query(UserModel).get(user_id)
         if user is None:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
-            )
+            raise NotFoundException("User not found")
 
         db.delete(user)
         try:
             db.commit()
         except IntegrityError:
             db.rollback()
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Failed to delete user",
-            )
+            raise BadRequestException("Failed to delete user")
         return "User deleted successfully"

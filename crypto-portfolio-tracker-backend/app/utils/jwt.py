@@ -1,10 +1,10 @@
-from fastapi import HTTPException, status
 from jose import jwt
 from datetime import datetime, timedelta
 from typing import Optional
 import os
 from dotenv import load_dotenv
 from uuid import UUID
+from app.utils.custom_exceptions import CredentialsException
 
 load_dotenv()
 
@@ -33,8 +33,8 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
             to_encode, SECRET_KEY, algorithm=ALGORITHM
         )  # Create token
         return encoded_jwt
-    except Exception as e:
-        raise TokenCreationError(f"Failed to create token: {e}")
+    except:
+        raise CredentialsException("Failed to create token")
 
 
 def decode_access_token(token: str):
@@ -42,6 +42,4 @@ def decode_access_token(token: str):
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         return payload
     except:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Failed to decode token"
-        )
+        raise CredentialsException("Failed to decode token")

@@ -32,5 +32,9 @@ class User(Base):
         default=func.now(), onupdate=func.now()
     )
 
-    portfolios = relationship("Portfolio", back_populates="owner")
-    transactions = relationship("Transaction", back_populates="user")
+    portfolios = relationship(
+        "Portfolio", back_populates="owner", cascade="all, delete-orphan"
+    )
+    transactions = relationship(
+        "Transaction", back_populates="user", cascade="all, delete-orphan"
+    )

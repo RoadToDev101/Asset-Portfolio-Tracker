@@ -10,7 +10,6 @@ class ApiResponse(BaseModel, Generic[DataT]):
     )
     message: Optional[str] = Field(None, description="A message about the result")
     data: Optional[DataT] = Field(None, description="Data payload of the response")
-    errors: List[str] = Field(default_factory=list, description="List of error details")
 
     @classmethod
     def with_message(cls, message: str, success: Optional[bool] = None):
@@ -30,13 +29,7 @@ class ApiResponse(BaseModel, Generic[DataT]):
     ):
         return cls(success=True, message=message, data=data)
 
-    @classmethod
-    def failure_response(
-        cls, message: str = "Operation failed", errors: List[str] = None
-    ):
-        return cls(success=False, message=message, errors=errors or [])
-
-    class ConfigDictDict:
+    class ConfigDict:
         json_schema_extra = {
             "example": {
                 "success": True,
@@ -46,6 +39,5 @@ class ApiResponse(BaseModel, Generic[DataT]):
                     "username": "user1",
                     "email": "user1@gmail.com",
                 },
-                "errors": [],
             }
         }

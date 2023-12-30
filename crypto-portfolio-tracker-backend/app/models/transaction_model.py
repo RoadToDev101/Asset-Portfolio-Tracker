@@ -1,12 +1,14 @@
 from sqlalchemy import ForeignKey, Enum as SQLAlchemyEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy import func
 from app.database.database import Base
 from datetime import datetime
 from enum import Enum as PyEnum
+import uuid
 
 
-class TransactionType(PyEnum):
+class TransactionType(str, PyEnum):
     BUY = "buy"
     SELL = "sell"
     TRANSFER = "transfer"
@@ -15,15 +17,21 @@ class TransactionType(PyEnum):
 class Transaction(Base):
     __tablename__ = "transactions"
 
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement="auto", index=True)
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+        unique=True,
+        index=True,
+    )
     transaction_type: Mapped[TransactionType] = mapped_column(
         SQLAlchemyEnum(TransactionType), nullable=False
     )
     coin_symbol: Mapped[str] = mapped_column(nullable=False)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"), nullable=False)
     amount: Mapped[float] = mapped_column(nullable=False)
     price_per_token: Mapped[float] = mapped_column(nullable=False)
-    portfolio_id: Mapped[int] = mapped_column(
+    portfolio_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("portfolios.id"), nullable=False
     )
     created_at: Mapped[datetime] = mapped_column(default=func.now())
