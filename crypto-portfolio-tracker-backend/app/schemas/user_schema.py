@@ -24,7 +24,7 @@ class UserUpdate(UserBase):
     is_active: Optional[bool]
 
 
-class UserOut(UserBase):
+class UserOut(BaseModel):
     id: UUID
     is_active: bool
     role: UserRole
@@ -32,5 +32,6 @@ class UserOut(UserBase):
     updated_at: datetime
     portfolios: list[PortfolioOut] = []
 
-    class Config:
+    class ConfigDict:
+        orm_mode = True
         from_attributes = True
