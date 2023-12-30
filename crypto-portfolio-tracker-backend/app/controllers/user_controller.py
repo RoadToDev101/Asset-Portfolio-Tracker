@@ -144,7 +144,7 @@ class UserController:
         db.delete(user)
         try:
             db.commit()
-        except IntegrityError:
+        except SQLAlchemyError:
             db.rollback()
             raise BadRequestException("Failed to delete user")
         return "User deleted successfully"

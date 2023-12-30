@@ -1,11 +1,9 @@
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from psycopg2.errors import UniqueViolation
 from app.schemas.portfolio_schema import PortfolioCreate, PortfolioUpdate, PortfolioOut
 from app.models.portfolio_model import Portfolio as PortfolioModel
 from app.models.user_model import User as UserModel
-from sqlalchemy.orm import Session
-from sqlalchemy.exc import IntegrityError
-from app.models.portfolio_model import Portfolio as PortfolioModel
 from app.utils.common_utils import remove_private_attributes
 from uuid import UUID
 from app.utils.custom_exceptions import NotFoundException, BadRequestException
@@ -27,12 +25,16 @@ class PortfolioController:
         )
 
         db.add(new_portfolio)
+
         try:
             db.commit()
             db.refresh(new_portfolio)
-        except IntegrityError:
+        except IntegrityError as e:
             db.rollback()
-            raise BadRequestException("Portfolio already exists")
+            if isinstance(e.orig, UniqueViolation):
+                raise BadRequestException("Portfolio already exists")
+            else:
+                raise BadRequestException(f"Failed to create portfolio: {e.orig}")
 
         portfolio_dict = remove_private_attributes(new_portfolio)
         portfolio_out = PortfolioOut.model_validate(portfolio_dict)
@@ -88,9 +90,7 @@ class PortfolioController:
     def update_portfolio_by_id(
         db: Session, portfolio_id: UUID, portfolio: PortfolioUpdate
     ) -> PortfolioOut:
-        db_portfolio = (
-            db.query(PortfolioModel).filter(PortfolioModel.id == portfolio_id).first()
-        )
+        db_portfolio = db.query(PortfolioModel).get(portfolio_id)
 
         if db_portfolio is None:
             raise NotFoundException("Portfolio not found")
@@ -121,7 +121,7 @@ class PortfolioController:
         db.delete(portfolio)
         try:
             db.commit()
-        except IntegrityError:
+        except SQLAlchemyError:
             db.rollback()
             raise BadRequestException("Failed to delete portfolio")
 
