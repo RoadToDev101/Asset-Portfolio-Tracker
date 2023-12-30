@@ -1,12 +1,10 @@
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
-from fastapi import HTTPException, status
 from app.schemas.portfolio_schema import PortfolioCreate, PortfolioUpdate, PortfolioOut
 from app.models.portfolio_model import Portfolio as PortfolioModel
 from app.models.user_model import User as UserModel
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
-from fastapi import HTTPException, status
 from app.models.portfolio_model import Portfolio as PortfolioModel
 from app.utils.common_utils import remove_private_attributes
 from uuid import UUID
@@ -115,17 +113,16 @@ class PortfolioController:
 
         return portfolio_out
 
-    class PortfolioController:
-        @staticmethod
-        def delete_portfolio_by_id(db: Session, portfolio_id: UUID) -> str:
-            portfolio = db.query(PortfolioModel).get(portfolio_id)
-            if portfolio is None:
-                raise NotFoundException("Portfolio not found")
-            db.delete(portfolio)
-            try:
-                db.commit()
-            except IntegrityError:
-                db.rollback()
-                raise BadRequestException("Failed to delete portfolio")
+    @staticmethod
+    def delete_portfolio_by_id(db: Session, portfolio_id: UUID) -> str:
+        portfolio = db.query(PortfolioModel).get(portfolio_id)
+        if portfolio is None:
+            raise NotFoundException("Portfolio not found")
+        db.delete(portfolio)
+        try:
+            db.commit()
+        except IntegrityError:
+            db.rollback()
+            raise BadRequestException("Failed to delete portfolio")
 
-            return "Portfolio deleted successfully"
+        return "Portfolio deleted successfully"

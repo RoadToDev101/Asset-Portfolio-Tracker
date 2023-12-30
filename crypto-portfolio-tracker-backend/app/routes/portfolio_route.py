@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, status, Query
 from app.dependencies import get_current_user, get_current_active_admin
 from app.utils.api_response import ApiResponse
 from app.utils.pagination import Pagination
-from app.schemas.portfolio_schema import PortfolioOut, PortfolioCreate
+from app.schemas.portfolio_schema import PortfolioOut, PortfolioCreate, PortfolioUpdate
 from app.schemas.user_schema import UserOut
 from app.dependencies import get_db
 from sqlalchemy.orm import Session
@@ -101,3 +101,43 @@ async def get_user_portfolios(
     return ApiResponse[Pagination[PortfolioOut]].success_response(
         data=result, message="Portfolios retrieved successfully"
     )
+
+
+# Update portfolio by id and validate that the user is the owner
+@router.patch(
+    "/{portfolio_id}",
+    status_code=status.HTTP_200_OK,
+    response_model=ApiResponse[PortfolioOut],
+)
+async def update_portfolio(
+    portfolio_id: UUID,
+    portfolio: PortfolioUpdate,
+    db: Session = Depends(get_db),
+    current_user: UserOut = Depends(get_current_user),
+):
+    portfolio = PortfolioController.update_portfolio_by_id(
+        db, portfolio_id=portfolio_id, portfolio=portfolio
+    )
+    if current_user.id != portfolio.user_id:
+        raise ForbiddenException
+    return ApiResponse[PortfolioOut].success_response(
+        data=portfolio, message="Portfolio updated successfully"
+    )
+
+
+# Delete portfolio by id and validate that the user is the owner
+@router.delete(
+    "/{portfolio_id}",
+    status_code=status.HTTP_200_OK,
+    response_model=ApiResponse[str],
+)
+async def delete_portfolio(
+    portfolio_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: UserOut = Depends(get_current_user),
+):
+    portfolio = PortfolioController.get_portfolio_by_id(db, portfolio_id=portfolio_id)
+    if current_user.id != portfolio.user_id:
+        raise ForbiddenException
+    PortfolioController.delete_portfolio_by_id(db, portfolio_id=portfolio_id)
+    return ApiResponse[str].success_response(message="Portfolio deleted successfully")

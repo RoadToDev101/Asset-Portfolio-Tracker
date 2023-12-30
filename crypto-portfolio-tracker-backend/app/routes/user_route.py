@@ -76,6 +76,9 @@ async def update_user(
 async def delete_user(
     user_id: UUID,
     db: Session = Depends(get_db),
+    current_user: UserOut = Depends(get_current_user),
 ):
+    if current_user.id != user_id and current_user.role != "admin":
+        raise ForbiddenException
     message = UserController.delete_user_by_id(db, user_id=user_id)
-    return ApiResponse[str].with_message(message=message)
+    return ApiResponse[str].success_response(message=message)
