@@ -23,7 +23,6 @@ class PortfolioOut(PortfolioBase):
     id: int
     user_id: UUID
     created_at: datetime
-    updated_at: datetime
 
-    class Config:
+    class ConfigDict:
         from_attributes = True

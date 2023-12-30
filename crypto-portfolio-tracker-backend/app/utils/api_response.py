@@ -36,7 +36,7 @@ class ApiResponse(BaseModel, Generic[DataT]):
     ):
         return cls(success=False, message=message, errors=errors or [])
 
-    class Config:
+    class ConfigDictDict:
         json_schema_extra = {
             "example": {
                 "success": True,

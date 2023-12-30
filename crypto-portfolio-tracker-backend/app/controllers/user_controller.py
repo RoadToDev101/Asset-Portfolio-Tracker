@@ -9,6 +9,9 @@ import datetime
 from app.utils.jwt import create_access_token
 from fastapi import HTTPException, status
 from uuid import UUID
+import logging
+
+logging.getLogger("passlib").setLevel(logging.ERROR)
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -79,9 +82,11 @@ class UserController:
                     detail=f"Failed to create user: {e.orig}",
                 )
 
-        user_out = UserOut.model_validate(
-            new_user
-        )  # Convert the SQLAlchemy model to a Pydantic model
+        user_dict = {
+            k: v for k, v in new_user.__dict__.items() if not k.startswith("_")
+        }  # Remove private attributes from the user object
+
+        user_out = UserOut.model_validate(user_dict)
 
         return user_out
 

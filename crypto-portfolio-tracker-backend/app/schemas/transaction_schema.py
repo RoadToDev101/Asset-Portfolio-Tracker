@@ -22,5 +22,5 @@ class TransactionOut(TransactionBase):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
+    class ConfigDict:
         from_attributes = True
