@@ -23,9 +23,12 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
 
         # Set expiration time for token
         if expires_delta:
+            # print(f"Expires delta: {expires_delta}")
             expire = datetime.utcnow() + expires_delta
+            # print(f"Setting to {expire}")
         else:
             expire = datetime.utcnow() + timedelta(minutes=15)
+            # print(f"No expiration time set. Setting to {expire}")
 
         to_encode.update({"exp": expire})  # Add expiration time to token
 

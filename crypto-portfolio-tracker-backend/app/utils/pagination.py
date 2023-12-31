@@ -1,5 +1,5 @@
 from math import ceil
-from typing import Type, TypeVar, Generic
+from typing import Type, TypeVar, Generic, List
 from pydantic import BaseModel
 
 DataT = TypeVar("DataT")
@@ -13,7 +13,7 @@ class PaginationMeta(BaseModel):
 
 
 class Pagination(BaseModel, Generic[DataT]):
-    data: list[DataT]
+    data: List[DataT]
     pagination: PaginationMeta
 
     @classmethod
@@ -24,7 +24,7 @@ class Pagination(BaseModel, Generic[DataT]):
     @classmethod
     def create(
         cls: Type["Pagination[DataT]"],
-        data: list[DataT],
+        data: List[DataT],
         page: int,
         page_size: int,
         total: int,

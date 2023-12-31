@@ -45,7 +45,7 @@ async def create_portfolio(
     response_model=ApiResponse[Pagination[PortfolioOut]],
     dependencies=[Depends(get_current_active_admin)],
 )
-async def get_all_portfolios(
+async def get_all_portfolios_in_db(
     page: int = Query(gt=0),
     page_size: int = Query(gt=0),
     db: Session = Depends(get_db),
@@ -139,5 +139,5 @@ async def delete_portfolio(
     portfolio = PortfolioController.get_portfolio_by_id(db, portfolio_id=portfolio_id)
     if current_user.id != portfolio.user_id:
         raise ForbiddenException
-    PortfolioController.delete_portfolio_by_id(db, portfolio_id=portfolio_id)
-    return ApiResponse[str].success_response(message="Portfolio deleted successfully")
+    mmessage = PortfolioController.delete_portfolio_by_id(db, portfolio_id=portfolio_id)
+    return ApiResponse[str].success_response(message=mmessage)

@@ -1,3 +1,4 @@
+from typing import List
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from psycopg2.errors import UniqueViolation
@@ -53,7 +54,7 @@ class PortfolioController:
     @staticmethod
     def get_all_portfolios(
         db: Session, skip: int = 0, limit: int = 10
-    ) -> list[PortfolioOut]:
+    ) -> List[PortfolioOut]:
         try:
             portfolios = db.query(PortfolioModel).offset(skip).limit(limit).all()
             results = []
@@ -68,7 +69,7 @@ class PortfolioController:
     @staticmethod
     def get_portfolios_by_user_id(
         db: Session, user_id: UUID, skip: int = 0, limit: int = 10
-    ) -> list[PortfolioOut]:
+    ) -> List[PortfolioOut]:
         try:
             portfolios = (
                 db.query(PortfolioModel)

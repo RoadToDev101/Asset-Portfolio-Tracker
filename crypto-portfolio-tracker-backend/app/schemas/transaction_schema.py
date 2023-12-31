@@ -25,7 +25,7 @@ class TransactionUpdate(TransactionBase):
 
 
 class TransactionOut(BaseModel):
-    id: int
+    id: UUID
     transaction_type: TransactionType
     user_id: UUID
     portfolio_id: UUID

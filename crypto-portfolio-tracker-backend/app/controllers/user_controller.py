@@ -1,3 +1,4 @@
+from typing import List
 from passlib.context import CryptContext
 from psycopg2.errors import UniqueViolation
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
@@ -15,6 +16,10 @@ from app.utils.custom_exceptions import (
     NotFoundException,
     BadRequestException,
 )
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 logging.getLogger("passlib").setLevel(logging.ERROR)
 
@@ -39,7 +44,9 @@ class UserController:
         if not verify_password(password, user.hashed_password):
             raise CredentialsException("Incorrect username or password")
 
-        access_token_expires = datetime.timedelta(minutes=30)
+        access_token_expires = datetime.timedelta(
+            days=float(os.getenv("JWT_LIFETIME_DAYS"))
+        )
         access_token = create_access_token(
             data={"sub": user.id}, expires_delta=access_token_expires
         )
@@ -93,7 +100,7 @@ class UserController:
         return user_out
 
     @staticmethod
-    def get_users(db: Session, skip: int = 0, limit: int = 10) -> list[UserOut]:
+    def get_users(db: Session, skip: int = 0, limit: int = 10) -> List[UserOut]:
         try:
             users = db.query(UserModel).offset(skip).limit(limit).all()
             results = []

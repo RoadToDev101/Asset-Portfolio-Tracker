@@ -1,8 +1,12 @@
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
-from starlette.exceptions import HTTPException as StarletteHTTPException
 from app.utils.custom_exceptions import *
-from app.routes import user_route, authentication_route, portfolio_route
+from app.routes import (
+    user_route,
+    authentication_route,
+    portfolio_route,
+    transaction_route,
+)
 from app.database.database import init_db, engine
 from fastapi.middleware.cors import CORSMiddleware
 import traceback
@@ -59,3 +63,4 @@ async def error_handling_middleware(request: Request, call_next):
 app.include_router(user_route.router)
 app.include_router(authentication_route.router)
 app.include_router(portfolio_route.router)
+app.include_router(transaction_route.router)
