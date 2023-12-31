@@ -54,13 +54,15 @@ async def create_transaction(
 async def get_all_transactions_in_db(
     page: int = Query(gt=0),
     page_size: int = Query(gt=0),
+    start_time: datetime = None,
+    end_time: datetime = None,
     db: Session = Depends(get_db),
 ):
     skip = (page - 1) * page_size
-    transactions = TransactionController.get_all_transactions(
-        db, skip=skip, limit=page_size
+    transactions, total = TransactionController.get_all_transactions(
+        db, skip=skip, limit=page_size, start_time=start_time, end_time=end_time
     )
-    total = db.query(TransactionModel).count()
+
     result = Pagination[TransactionOut].create(transactions, page, page_size, total)
     return ApiResponse[Pagination[TransactionOut]].success_response(
         data=result, message="Transactions retrieved successfully"
@@ -129,6 +131,8 @@ async def get_portfolio_transactions(
     portfolio_id: UUID,
     page: int = Query(gt=0),
     page_size: int = Query(gt=0),
+    start_time: datetime = None,
+    end_time: datetime = None,
     db: Session = Depends(get_db),
     current_user: UserOut = Depends(get_current_user),
 ):
@@ -136,14 +140,15 @@ async def get_portfolio_transactions(
     if current_user.id != portfolio.user_id:
         raise ForbiddenException
     skip = (page - 1) * page_size
-    transactions = TransactionController.get_transactions_by_portfolio_id(
-        db, portfolio_id=portfolio_id, skip=skip, limit=page_size
+    transactions, total = TransactionController.get_transactions_by_portfolio_id(
+        db,
+        portfolio_id=portfolio_id,
+        skip=skip,
+        limit=page_size,
+        start_time=start_time,
+        end_time=end_time,
     )
-    total = (
-        db.query(TransactionModel)
-        .filter(TransactionModel.portfolio_id == portfolio_id)
-        .count()
-    )
+
     result = Pagination[TransactionOut].create(transactions, page, page_size, total)
     return ApiResponse[Pagination[TransactionOut]].success_response(
         data=result, message="Transactions retrieved successfully"
@@ -151,7 +156,7 @@ async def get_portfolio_transactions(
 
 
 # Update transaction by id and validate that the user is the owner
-@router.put(
+@router.patch(
     "/{transaction_id}",
     status_code=status.HTTP_200_OK,
     response_model=ApiResponse[TransactionOut],

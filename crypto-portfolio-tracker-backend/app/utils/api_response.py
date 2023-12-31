@@ -10,7 +10,7 @@ class ApiResponse(BaseModel, Generic[DataT]):
         None, description="Whether the request was successful or not"
     )
     message: Optional[str] = Field(None, description="A message about the result")
-    # data: Optional[DataT] = Field(None, description="Data payload of the response")
+    data: Optional[DataT] = Field(None, description="Data payload of the response")
 
     @classmethod
     def with_message(cls, message: str, success: Optional[bool] = None):
