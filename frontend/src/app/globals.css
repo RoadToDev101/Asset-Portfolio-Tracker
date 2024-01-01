@@ -1,0 +1,43 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground-rgb: 0, 0, 0;
+  --background-start-rgb: 214, 219, 220; /* Light mode start color */
+  --background-end-rgb: 255, 255, 255; /* Light mode end color */
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --foreground-rgb: 255, 255, 255;
+    --background-start-rgb: 25, 25, 112; /* Dark mode start color - deep dark blue */
+    --background-end-rgb: 70, 130, 180; /* Dark mode end color - steel blue */
+  }
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: linear-gradient(
+    to bottom,
+    rgb(var(--background-start-rgb)),
+    rgb(var(--background-end-rgb))
+  );
+}
+
+/* Custom bounce animation */
+@keyframes custom-bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(
+      -10px
+    ); /* Adjust this value for different bounce heights */
+  }
+}
+
+.custom-bounce {
+  animation: custom-bounce 1s infinite;
+}
