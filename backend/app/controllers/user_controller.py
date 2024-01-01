@@ -5,7 +5,6 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 from app.schemas.user_schema import UserCreate, UserUpdate, UserOut
 from app.models.user_model import User as UserModel
-from app.utils.access_token import TokenWithData
 import datetime
 from app.utils.jwt import create_access_token
 from uuid import UUID
@@ -36,7 +35,7 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 class UserController:
     @staticmethod
-    def authenticate_user(db: Session, username: str, password: str) -> TokenWithData:
+    def authenticate_user(db: Session, username: str, password: str) -> str:
         user = db.query(UserModel).filter(UserModel.username == username).first()
 
         if not user:
@@ -51,10 +50,7 @@ class UserController:
             data={"sub": user.id}, expires_delta=access_token_expires
         )
 
-        token_data = TokenWithData(
-            access_token=access_token, token_type="bearer", user_id=user.id
-        )
-        return token_data
+        return access_token
 
     @staticmethod
     def create_user(db: Session, user: UserCreate) -> UserOut:

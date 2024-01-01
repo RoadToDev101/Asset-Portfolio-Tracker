@@ -44,39 +44,39 @@ class ApiResponse(BaseModel, Generic[DataT]):
         }
 
 
-class TokenResponse(ApiResponse[DataT]):
-    access_token: Optional[str] = Field(None, description="Access token for the user")
-    token_type: Optional[str] = Field(None, description="Type of the access token")
-    user_id: Optional[UUID] = Field(
-        None, description="User ID of the authenticated user"
-    )
+# class TokenResponse(ApiResponse[DataT]):
+#     access_token: Optional[str] = Field(None, description="Access token for the user")
+#     token_type: Optional[str] = Field(None, description="Type of the access token")
+#     user_id: Optional[UUID] = Field(
+#         None, description="User ID of the authenticated user"
+#     )
 
-    @classmethod
-    def token_response(
-        cls,
-        message: str = "Authentication successful",
-        data: Optional[DataT] = None,
-        access_token: str = None,
-        token_type: str = None,
-        user_id: UUID = None,
-    ):
-        return cls(
-            success=True,
-            message=message,
-            data=data,
-            access_token=access_token,
-            token_type=token_type,
-            user_id=user_id,
-        )
+#     @classmethod
+#     def token_response(
+#         cls,
+#         message: str = "Authentication successful",
+#         data: Optional[DataT] = None,
+#         access_token: str = None,
+#         token_type: str = None,
+#         user_id: UUID = None,
+#     ):
+#         return cls(
+#             success=True,
+#             message=message,
+#             data=data,
+#             access_token=access_token,
+#             token_type=token_type,
+#             user_id=user_id,
+#         )
 
-    class ConfigDict:
-        json_schema_extra = {
-            "example": {
-                "success": True,
-                "message": "Authentication successful",
-                "data": None,
-                "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
-                "token_type": "bearer",
-                "user_id": "e9f7d3e0-1c1a-4e5a-8f2a-0f8a6b6f1b2d",
-            }
-        }
+#     class ConfigDict:
+#         json_schema_extra = {
+#             "example": {
+#                 "success": True,
+#                 "message": "Authentication successful",
+#                 "data": None,
+#                 "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
+#                 "token_type": "bearer",
+#                 "user_id": "e9f7d3e0-1c1a-4e5a-8f2a-0f8a6b6f1b2d",
+#             }
+#         }

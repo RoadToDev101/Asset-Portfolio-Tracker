@@ -1,5 +1,4 @@
-from fastapi import Depends
-from fastapi.security import OAuth2PasswordBearer
+from fastapi import Depends, Request
 from sqlalchemy.orm import Session
 from app.database.database import SessionLocal
 from app.controllers.user_controller import UserController
@@ -17,7 +16,9 @@ from app.utils.custom_exceptions import (
 
 # from app.utils.access_token import TokenWithData
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
+
+def oauth2_scheme(request: Request):
+    return request.cookies.get("access_token")
 
 
 def get_db():
