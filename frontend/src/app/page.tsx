@@ -1,6 +1,5 @@
 "use client";
 
-import BitcoinIcon from "@components/bitcoin-icon";
 import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useState } from "react";
@@ -22,6 +21,14 @@ import {
 } from "@ui/navigation-menu";
 import { Badge } from "@ui/badge";
 import { AspectRatio } from "@ui/aspect-ratio";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@ui/carousel";
+import Autoplay from "embla-carousel-autoplay";
 
 export default function Home() {
   const [topCoins, setTopCoins] = useState<any[]>([]);
@@ -30,7 +37,7 @@ export default function Home() {
   useEffect(() => {
     const fetchTopCoins = async () => {
       const response = await fetch(
-        "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=5&page=1"
+        "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=10&page=1"
       );
       const data = await response.json();
       setTopCoins(data);
@@ -49,7 +56,7 @@ export default function Home() {
   useEffect(() => {
     const fetchNews = async () => {
       const response = await fetch(
-        `https://newsapi.org/v2/everything?q=crypto&language=en&pageSize=3&apiKey=${process.env.NEXT_PUBLIC_NEWS_API_KEY}`
+        `https://newsapi.org/v2/everything?q=crypto+OR+ethereum+OR+bitcoin&language=en&sortBy=publishedAt&pageSize=3&apiKey=${process.env.NEXT_PUBLIC_NEWS_API_KEY}`
       );
       const data = await response.json();
       setNews(data.articles);
@@ -64,25 +71,23 @@ export default function Home() {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <div className="p-4 lg:px-6 h-14 flex items-center bg-gradient-to-r from-indigo-500 via-purple-400 to-pink-400 text-white">
-        <Link className="flex items-center justify-center" href="/">
-          <BitcoinIcon className="h-6 w-6" />
-          <span className="ml-2 text-lg font-bold">CryptoTracker</span>
+      <div className="p-4 lg:px-6 h-14 flex items-center bg-gradient-to-r from-indigo-200 via-purple-500 to-pink-200">
+        <Link className="flex items-center gap-2" href="/">
+          <Image
+            src="/logo_without_text.svg"
+            alt="CryptoTracker"
+            width={50}
+            height={50}
+            layout="fixed"
+          />
+          <span className="ml-2 text-lg font-bold">Datablevn</span>
         </Link>
         <div className="ml-auto flex gap-4 sm:gap-6">
           <NavigationMenu>
             <NavigationMenuList>
               <NavigationMenuItem>
                 <NavigationMenuLink
-                  className="content-center pr-2 hover:underline hover:text-black"
-                  href="/about"
-                >
-                  About
-                </NavigationMenuLink>
-              </NavigationMenuItem>
-              <NavigationMenuItem>
-                <NavigationMenuLink
-                  className="content-center pr-2 hover:underline hover:text-black"
+                  className="content-center pr-2 hover:underline "
                   href="/news"
                 >
                   News
@@ -90,7 +95,7 @@ export default function Home() {
               </NavigationMenuItem>
               <NavigationMenuItem>
                 <NavigationMenuLink
-                  className="content-center pr-2 hover:underline hover:text-black"
+                  className="content-center pr-2 hover:underline "
                   href="/contact"
                 >
                   Contact
@@ -157,61 +162,81 @@ export default function Home() {
                 </p>
               </div>
             </div>
-            <div className="mx-auto grid items-start gap-8 sm:max-w-4xl sm:grid-cols-2 md:gap-12 lg:max-w-7xl lg:grid-cols-5">
-              {topCoins.map((coin) => (
-                <Card
-                  key={coin.id}
-                  className="w-full h-full flex flex-col items-center justify-center text-center"
-                >
-                  <CardHeader className="flex items-center justify-center gap-2 pt-4">
-                    <Image
-                      src={coin.image}
-                      alt={coin.name}
-                      width={50}
-                      height={50}
-                      className="h-6 w-6"
-                    />
-                    <CardTitle>{coin.symbol.toUpperCase()}</CardTitle>
-                    <CardDescription className="flex flex-col items-center justify-center">
-                      <p className="text-sm text-gray-600">
-                        High 24h: ${coin.high_24h.toLocaleString()}
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        Low 24h: ${coin.low_24h.toLocaleString()}
-                      </p>
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="flex flex-col items-center justify-center">
-                    <div className="mb-3">
-                      <p className="text-lg font-bold">
-                        ${coin.current_price.toLocaleString()}
-                      </p>
-                      <p
-                        className={`text-sm ${
-                          coin.price_change_percentage_24h > 0
-                            ? "text-green-600"
-                            : "text-red-600"
-                        }`}
-                      >
-                        24h: {coin.price_change_percentage_24h.toFixed(2)}%
-                      </p>
-                    </div>
-                    <p className="text-sm text-gray-600">
-                      Market Cap: ${(coin.market_cap / 1000000000).toFixed(2)} B
-                    </p>
-                  </CardContent>
-                  <CardContent className="flex justify-center">
-                    <a
-                      href={`https://www.coingecko.com/en/coins/${coin.id}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-600 hover:underline"
+            <div className="mx-auto sm:max-w-4xl lg:max-w-7xl">
+              <Carousel
+                className="w-full"
+                plugins={[
+                  Autoplay({
+                    delay: 5000,
+                  }),
+                ]}
+              >
+                <CarouselContent>
+                  {topCoins.map((coin) => (
+                    <CarouselItem
+                      key={coin.id}
+                      className="md:basis-1/3 lg:basis-1/5"
                     >
-                      More info
-                    </a>
-                  </CardContent>
-                </Card>
-              ))}
+                      <Card
+                        key={coin.id}
+                        className="w-full h-full flex flex-col items-center justify-center text-center"
+                      >
+                        <CardHeader className="flex items-center justify-center gap-2 pt-4">
+                          <Image
+                            src={coin.image}
+                            alt={coin.name}
+                            width={50}
+                            height={50}
+                            className="h-6 w-6"
+                          />
+                          <CardTitle>{coin.symbol.toUpperCase()}</CardTitle>
+                          <CardDescription className="flex flex-col items-center justify-center">
+                            <p className="text-sm text-gray-600">
+                              High 24h: ${coin.high_24h.toLocaleString()}
+                            </p>
+                            <p className="text-sm text-gray-600">
+                              Low 24h: ${coin.low_24h.toLocaleString()}
+                            </p>
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="flex flex-col items-center justify-center">
+                          <div className="mb-3">
+                            <p className="text-lg font-bold">
+                              ${coin.current_price.toLocaleString()}
+                            </p>
+                            <p
+                              className={`text-sm ${
+                                coin.price_change_percentage_24h > 0
+                                  ? "text-green-600"
+                                  : "text-red-600"
+                              }`}
+                            >
+                              24h: {coin.price_change_percentage_24h.toFixed(2)}
+                              %
+                            </p>
+                          </div>
+                          <p className="text-sm text-gray-600">
+                            Market Cap: $
+                            {(coin.market_cap / 1000000000).toFixed(2)} B
+                          </p>
+                        </CardContent>
+                        <CardContent className="flex justify-center">
+                          <a
+                            href={`https://www.coingecko.com/en/coins/${coin.id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:underline"
+                          >
+                            More info
+                          </a>
+                        </CardContent>
+                      </Card>
+                    </CarouselItem>
+                  ))}
+                </CarouselContent>
+                <CarouselPrevious />
+                <CarouselNext />
+              </Carousel>
             </div>
           </div>
         </div>
@@ -283,6 +308,11 @@ export default function Home() {
                 </Card>
               ))}
             </div>
+            <Link href="/news" className="inline-block mt-8">
+              <Button className="bg-pink-500 hover:bg-purple-500 text-white font-bold py-2 px-4 rounded">
+                Explore All Crypto News
+              </Button>
+            </Link>
           </div>
         </div>
       </div>
