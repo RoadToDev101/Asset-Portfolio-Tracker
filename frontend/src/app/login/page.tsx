@@ -20,8 +20,8 @@ import { Input } from "@ui/input";
 
 const loginFormSchema = z
   .object({
-    username: z.string().min(3).max(20),
-    password: z.string().min(6).max(100),
+    username: z.string().min(3).max(50),
+    password: z.string().min(8).max(100),
   })
   .refine((data) => data.username && data.password, {
     message: "Please enter your username and password.",
