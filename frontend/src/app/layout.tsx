@@ -10,8 +10,8 @@ export const fontSans = FontSans({
 });
 
 export const metadata: Metadata = {
-  title: "CryptoTrack",
-  description: "Cryptocurrency Portfolio Tracker",
+  title: "PortfolioTracker",
+  description: "Help you track your portfolios",
 };
 
 export default function RootLayout({
