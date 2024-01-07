@@ -1,5 +1,4 @@
-from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI
 from app.utils.custom_exceptions import *
 from app.routes import (
     user_route,
@@ -9,9 +8,9 @@ from app.routes import (
 )
 from app.database.database import init_db, engine
 from fastapi.middleware.cors import CORSMiddleware
-import traceback
+from app.error_handling_middleware import exception_handling_middleware
 from dotenv import load_dotenv
-import os
+
 
 load_dotenv()
 
@@ -34,30 +33,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
-# Handling unexpected errors
-@app.middleware("http")
-async def error_handling_middleware(request: Request, call_next):
-    try:
-        response = await call_next(request)
-        return response
-    except Exception as e:
-        if os.getenv("ENV") == "development":
-            print("Error in middleware: ", e)
-            # For debugging/development purposes, you can log the full traceback
-            # or send it in the response. BE CAREFUL with this in production.
-            trace = traceback.format_exc()
-            return JSONResponse(
-                {
-                    "detail": "Internal Server Error",
-                    "error": str(e),
-                    "trace": trace,  # Only include this in a non-production environment
-                },
-                status_code=500,
-            )
-        else:
-            return JSONResponse({"detail": "Internal Server Error"}, status_code=500)
-
+app.middleware("http")(exception_handling_middleware)
 
 # Include routers from the routes module
 app.include_router(user_route.router)
