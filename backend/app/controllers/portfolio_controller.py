@@ -23,6 +23,7 @@ class PortfolioController:
             name=portfolio.name,
             description=portfolio.description,
             user_id=portfolio.user_id,
+            asset_type=portfolio.asset_type,
         )
 
         db.add(new_portfolio)

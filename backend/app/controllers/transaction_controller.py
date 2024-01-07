@@ -1,11 +1,10 @@
 from typing import Tuple, List
-from sqlalchemy import ClauseElement
+from sqlalchemy import ClauseElement, or_
 from app.utils.custom_exceptions import BadRequestException, NotFoundException
 from app.utils.common_utils import remove_private_attributes
 from uuid import UUID
 from sqlalchemy.orm import Session
-from sqlalchemy.exc import IntegrityError, SQLAlchemyError
-from psycopg2.errors import UniqueViolation
+from sqlalchemy.exc import SQLAlchemyError
 from app.schemas.transaction_schema import (
     TransactionCreate,
     TransactionOut,
@@ -34,12 +33,22 @@ class TransactionController:
         if db_portfolio is None:
             raise NotFoundException("Portfolio not found")
 
+        # Check if the transaction asset type is valid
+        if transaction.asset_type != db_portfolio.asset_type:
+            raise BadRequestException(
+                "Transaction asset type does not match portfolio asset type"
+            )
+
         new_transaction = TransactionModel(
+            description=transaction.description,
             transaction_type=transaction.transaction_type,
-            coin_symbol=transaction.coin_symbol,
+            asset_type=transaction.asset_type,
+            ticker=transaction.ticker,
             user_id=transaction.user_id,
             amount=transaction.amount,
-            price_per_token=transaction.price_per_token,
+            currency=transaction.currency,
+            unit_price=transaction.unit_price,
+            transaction_fee=transaction.transaction_fee,
             portfolio_id=transaction.portfolio_id,
         )
 
@@ -48,12 +57,9 @@ class TransactionController:
         try:
             db.commit()
             db.refresh(new_transaction)
-        except IntegrityError as e:
+        except SQLAlchemyError:
             db.rollback()
-            if isinstance(e.orig, UniqueViolation):
-                raise BadRequestException("Transaction already exists")
-            else:
-                raise BadRequestException(f"Failed to create transaction: {e.orig}")
+            raise BadRequestException("Failed to create transaction")
 
         transaction_dict = remove_private_attributes(new_transaction)
         transaction_out = TransactionOut.model_validate(transaction_dict)
@@ -77,6 +83,7 @@ class TransactionController:
         limit: int = 10,
         start_time: datetime = None,
         end_time: datetime = None,
+        include_deleted: bool = False,
     ) -> Tuple[List[TransactionOut], int]:
         try:
             query = db.query(TransactionModel)
@@ -94,6 +101,14 @@ class TransactionController:
 
             if end_time and not start_time:
                 query = query.filter(TransactionModel.created_at <= end_time)
+
+            if not include_deleted:
+                query = query.filter(
+                    or_(
+                        TransactionModel.deleted_at.is_(None),
+                        TransactionModel.deleted_at > datetime.utcnow(),
+                    )
+                )
 
             total = query.count()
             transactions = query.offset(skip).limit(limit).all()
@@ -113,9 +128,10 @@ class TransactionController:
         limit: int = 10,
         start_time: datetime = None,
         end_time: datetime = None,
+        include_deleted: bool = False,
     ) -> Tuple[List[TransactionOut], int]:
         return TransactionController._get_transactions(
-            db, None, skip, limit, start_time, end_time
+            db, None, skip, limit, start_time, end_time, include_deleted
         )
 
     @staticmethod
@@ -159,28 +175,47 @@ class TransactionController:
             raise NotFoundException("Transaction not found")
 
         # Update the transaction attributes
+        if transaction.description:
+            db_transaction.description = transaction.description
         if transaction.transaction_type:
             db_transaction.transaction_type = transaction.transaction_type
-        if transaction.coin_symbol:
-            db_transaction.coin_symbol = transaction.coin_symbol
+        if transaction.ticker:
+            db_transaction.ticker = transaction.ticker
         if transaction.amount:
             db_transaction.amount = transaction.amount
-        if transaction.price_per_token:
-            db_transaction.price_per_token = transaction.price_per_token
+        if transaction.currency:
+            db_transaction.currency = transaction.currency
+        if transaction.unit_price:
+            db_transaction.unit_price = transaction.unit_price
+        if transaction.transaction_fee:
+            db_transaction.transaction_fee = transaction.transaction_fee
 
         try:
             db.commit()
             db.refresh(db_transaction)
-        except IntegrityError as e:
+        except SQLAlchemyError:
             db.rollback()
-            if isinstance(e.orig, UniqueViolation):
-                raise BadRequestException("Transaction already exists")
-            else:
-                raise BadRequestException(f"Failed to update transaction: {e.orig}")
+            raise BadRequestException("Failed to update transaction")
+
         transaction_dict = remove_private_attributes(db_transaction)
         transaction_out = TransactionOut.model_validate(transaction_dict)
 
         return transaction_out
+
+    @staticmethod
+    def soft_delete_transaction_by_id(db: Session, transaction_id: UUID) -> str:
+        transaction = db.query(TransactionModel).get(transaction_id)
+        if transaction is None:
+            raise NotFoundException("Transaction not found")
+
+        transaction.deleted_at = datetime.utcnow()
+
+        try:
+            db.commit()
+        except SQLAlchemyError:
+            db.rollback()
+            raise BadRequestException("Failed to delete transaction")
+        return "Transaction deleted successfully"
 
     @staticmethod
     def delete_transaction_by_id(db: Session, transaction_id: UUID) -> str:
@@ -195,4 +230,4 @@ class TransactionController:
         except SQLAlchemyError:
             db.rollback()
             raise BadRequestException("Failed to delete transaction")
-        return "Transaction deleted successfully"
+        return "Transaction hard deleted successfully"

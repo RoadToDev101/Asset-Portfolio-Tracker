@@ -40,7 +40,7 @@ async def create_portfolio(
 
 # Get all portfolios created by all users (admin only)
 @router.get(
-    "/all",
+    "/admin",
     status_code=status.HTTP_200_OK,
     response_model=ApiResponse[Pagination[PortfolioOut]],
     dependencies=[Depends(get_current_active_admin)],
