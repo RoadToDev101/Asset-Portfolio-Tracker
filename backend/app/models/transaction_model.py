@@ -6,6 +6,7 @@ from app.database.database import Base
 from datetime import datetime
 from enum import Enum as PyEnum
 import uuid
+from app.models.portfolio_model import AssetType
 
 
 class TransactionType(str, PyEnum):
@@ -24,20 +25,29 @@ class Transaction(Base):
         unique=True,
         index=True,
     )
+    description: Mapped[str] = mapped_column()
     transaction_type: Mapped[TransactionType] = mapped_column(
         SQLAlchemyEnum(TransactionType), nullable=False
     )
-    coin_symbol: Mapped[str] = mapped_column(nullable=False)
+    asset_type: Mapped[AssetType] = mapped_column(
+        SQLAlchemyEnum(AssetType), nullable=False
+    )
+    ticker: Mapped[str] = mapped_column(nullable=False)
     user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"), nullable=False)
     amount: Mapped[float] = mapped_column(nullable=False)
-    price_per_token: Mapped[float] = mapped_column(nullable=False)
+    currency: Mapped[str] = mapped_column(
+        nullable=False
+    )  # Assuming ISO 4217 currency codes
+    unit_price: Mapped[float] = mapped_column(nullable=False)
+    transaction_fee: Mapped[float] = mapped_column(nullable=False)
     portfolio_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("portfolios.id"), nullable=False
+        ForeignKey("portfolios.id"), nullable=False, index=True
     )
     created_at: Mapped[datetime] = mapped_column(default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         default=func.now(), onupdate=func.now()
     )
+    deleted_at: Mapped[datetime] = mapped_column(nullable=True)
 
     portfolio = relationship("Portfolio", back_populates="transactions")
     user = relationship("User", back_populates="transactions")
