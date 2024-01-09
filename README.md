@@ -1,5 +1,15 @@
-# Crypto Portfolio Tracker App
+# Asset Portfolio Tracker App
 
-## Description
+This is a simple app that allows you to track your asset portfolio. Everything from stocks, to crypto, .etc.
 
-This is a simple app that allows you to track your crypto portfolio.
+## Deployment
+
+To deploy this project run
+
+```bash
+  make
+```
+
+## Authors
+
+- [@Son Pham](https://github.com/RoadToDev101)
