@@ -24,6 +24,16 @@ router = APIRouter(prefix="/api/v1/auth", tags=["Authentication"])
     response_model=TokenResponse[TokenWithData],
 )
 async def register(user: UserCreate, db: Session = Depends(get_db)):
+    """
+    Register a new user.
+
+    Args:
+        user (UserCreate): The user data to be registered.
+        db (Session, optional): The database session. Defaults to Depends(get_db).
+
+    Returns:
+        TokenResponse[TokenWithData]: The token response containing the access token, token type, user ID, and message.
+    """
     new_user = UserController.create_user(db, user=user)
 
     expires_delta = timedelta(days=float(os.getenv("JWT_LIFETIME_DAYS")))
@@ -51,6 +61,17 @@ async def login(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     db: Session = Depends(get_db),
 ):
+    """
+    Authenticate the user and generate access and refresh tokens.
+
+    Args:
+        response (Response): The response object.
+        form_data (OAuth2PasswordRequestForm): The form data containing the username and password.
+        db (Session, optional): The database session. Defaults to Depends(get_db).
+
+    Returns:
+        TokenResponse[TokenWithData]: The response containing the access token, token type, user ID, and message.
+    """
     authenticated_user = UserController.authenticate_user(
         db, form_data.username, form_data.password
     )
@@ -88,6 +109,21 @@ async def refresh(
     request: Request,
     response: Response,
 ):
+    """
+    Refreshes the access token by decoding the refresh token from the request cookies,
+    creating a new access token, and setting the new refresh token in the HTTP-only cookie.
+
+    Args:
+        request (Request): The incoming request object.
+        response (Response): The outgoing response object.
+
+    Raises:
+        NotFoundException: If the refresh token is not found in the request cookies.
+        ForbiddenException: If the decoded refresh token is invalid.
+
+    Returns:
+        TokenResponse[TokenWithData]: The response containing the new access token and user information.
+    """
     # Get Refresh Token from Header
     refresh_token = request.cookies.get("refresh_token")
     if not refresh_token:
@@ -128,5 +164,14 @@ async def refresh(
     status_code=status.HTTP_200_OK,
 )
 async def logout(response: Response):
+    """
+    Logout the user by deleting the refresh token cookie.
+
+    Args:
+        response (Response): The HTTP response object.
+
+    Returns:
+        dict: A dictionary containing the success message.
+    """
     response.delete_cookie(key="refresh_token")
     return {"message": "User logged out successfully"}

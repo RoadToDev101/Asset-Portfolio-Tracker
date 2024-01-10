@@ -19,7 +19,6 @@ router = APIRouter(
 )
 
 
-# Create portfolio. Validate that only the owner can create a portfolio
 @router.post(
     "/",
     status_code=status.HTTP_201_CREATED,
@@ -30,6 +29,20 @@ async def create_portfolio(
     db: Session = Depends(get_db),
     current_user: UserOut = Depends(get_current_user),
 ):
+    """
+    Create a new portfolio for the current user.
+
+    Args:
+        portfolio (PortfolioCreate): The portfolio data to be created.
+        db (Session, optional): The database session. Defaults to Depends(get_db).
+        current_user (UserOut, optional): The current authenticated user. Defaults to Depends(get_current_user).
+
+    Raises:
+        ForbiddenException: If the current user is not the owner of the portfolio.
+
+    Returns:
+        ApiResponse[PortfolioOut]: The API response containing the created portfolio.
+    """
     if current_user.id != portfolio.user_id:
         raise ForbiddenException
     portfolio = PortfolioController.create_portfolio(db, portfolio)
@@ -38,7 +51,6 @@ async def create_portfolio(
     )
 
 
-# Get all portfolios created by all users (admin only)
 @router.get(
     "/admin",
     status_code=status.HTTP_200_OK,
@@ -50,6 +62,20 @@ async def get_all_portfolios_in_db(
     page_size: int = Query(gt=0),
     db: Session = Depends(get_db),
 ):
+    """
+    Retrieve all portfolios from the database.
+
+    Args:
+        page (int): The page number of the results (default: 1).
+        page_size (int): The number of portfolios per page (default: 10).
+        db (Session): The database session.
+
+    Returns:
+        ApiResponse[Pagination[PortfolioOut]]: The API response containing the paginated portfolios.
+
+    Raises:
+        None.
+    """
     skip = (page - 1) * page_size
     portfolios = PortfolioController.get_all_portfolios(db, skip=skip, limit=page_size)
     total = db.query(PortfolioModel).count()
@@ -59,7 +85,6 @@ async def get_all_portfolios_in_db(
     )
 
 
-# Get portfoloio by id and validate that the user is the owner
 @router.get(
     "/{portfolio_id}",
     status_code=status.HTTP_200_OK,
@@ -70,13 +95,23 @@ async def get_portfolio(
     db: Session = Depends(get_db),
     current_user: UserOut = Depends(get_current_user),
 ):
+    """
+    Retrieve a portfolio by its ID.
+
+    Args:
+        portfolio_id (UUID): The ID of the portfolio to retrieve.
+        db (Session, optional): The database session. Defaults to Depends(get_db).
+        current_user (UserOut, optional): The current authenticated user. Defaults to Depends(get_current_user).
+
+    Returns:
+        ApiResponse[PortfolioOut]: The API response containing the retrieved portfolio.
+    """
     portfolio = PortfolioController.get_portfolio_by_id(db, portfolio_id=portfolio_id)
     if current_user.id != portfolio.user_id:
         raise ForbiddenException
     return ApiResponse[PortfolioOut].success_response(data=portfolio)
 
 
-# Get all portfolios for a user
 @router.get(
     "/",
     status_code=status.HTTP_200_OK,
@@ -88,6 +123,18 @@ async def get_user_portfolios(
     db: Session = Depends(get_db),
     current_user: UserOut = Depends(get_current_user),
 ):
+    """
+    Retrieve the portfolios of the current user.
+
+    Args:
+        page (int): The page number of the results to retrieve.
+        page_size (int): The number of results per page.
+        db (Session): The database session.
+        current_user (UserOut): The current authenticated user.
+
+    Returns:
+        ApiResponse[Pagination[PortfolioOut]]: The API response containing the paginated portfolios.
+    """
     skip = (page - 1) * page_size
     portfolios = PortfolioController.get_portfolios_by_user_id(
         db, user_id=current_user.id, skip=skip, limit=page_size
@@ -103,7 +150,6 @@ async def get_user_portfolios(
     )
 
 
-# Update portfolio by id and validate that the user is the owner
 @router.patch(
     "/{portfolio_id}",
     status_code=status.HTTP_200_OK,
@@ -115,6 +161,21 @@ async def update_portfolio(
     db: Session = Depends(get_db),
     current_user: UserOut = Depends(get_current_user),
 ):
+    """
+    Update a portfolio by its ID.
+
+    Args:
+        portfolio_id (UUID): The ID of the portfolio to be updated.
+        portfolio (PortfolioUpdate): The updated portfolio data.
+        db (Session, optional): The database session. Defaults to Depends(get_db).
+        current_user (UserOut, optional): The current authenticated user. Defaults to Depends(get_current_user).
+
+    Returns:
+        ApiResponse[PortfolioOut]: The API response containing the updated portfolio data.
+
+    Raises:
+        ForbiddenException: If the current user is not the owner of the portfolio.
+    """
     portfolio = PortfolioController.update_portfolio_by_id(
         db, portfolio_id=portfolio_id, portfolio=portfolio
     )
@@ -125,7 +186,6 @@ async def update_portfolio(
     )
 
 
-# Delete portfolio by id and validate that the user is the owner
 @router.delete(
     "/{portfolio_id}",
     status_code=status.HTTP_200_OK,
@@ -136,6 +196,17 @@ async def delete_portfolio(
     db: Session = Depends(get_db),
     current_user: UserOut = Depends(get_current_user),
 ):
+    """
+    Delete a portfolio by its ID.
+
+    Args:
+        portfolio_id (UUID): The ID of the portfolio to be deleted.
+        db (Session, optional): The database session. Defaults to Depends(get_db).
+        current_user (UserOut, optional): The current authenticated user. Defaults to Depends(get_current_user).
+
+    Returns:
+        ApiResponse[str]: The API response indicating the success message of the operation.
+    """
     portfolio = PortfolioController.get_portfolio_by_id(db, portfolio_id=portfolio_id)
     if current_user.id != portfolio.user_id:
         raise ForbiddenException

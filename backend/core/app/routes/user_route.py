@@ -23,6 +23,20 @@ async def get_user(
     db: Session = Depends(get_db),
     current_user: UserOut = Depends(get_current_user),
 ):
+    """
+    Retrieve a user by their ID.
+
+    Args:
+        user_id (UUID): The ID of the user to retrieve.
+        db (Session, optional): The database session. Defaults to Depends(get_db).
+        current_user (UserOut, optional): The current authenticated user. Defaults to Depends(get_current_user).
+
+    Raises:
+        ForbiddenException: If the current user is not an admin and not the same as the requested user.
+
+    Returns:
+        ApiResponse[UserOut]: The API response containing the user data.
+    """
     if current_user.role != "admin" and current_user.id != user_id:
         raise ForbiddenException
     user = UserController.get_user_by_id(db, user_id=user_id)
@@ -40,6 +54,17 @@ async def get_all_users(
     page_size: int = Query(gt=0),
     db: Session = Depends(get_db),
 ):
+    """
+    Retrieve all users with pagination.
+
+    Args:
+        page (int): The page number to retrieve (default: 1).
+        page_size (int): The number of users per page (default: 10).
+        db (Session): The database session.
+
+    Returns:
+        ApiResponse[Pagination[UserOut]]: The API response containing the paginated users.
+    """
     skip = (page - 1) * page_size
     users = UserController.get_users(db, skip=skip, limit=page_size)
     total = db.query(UserModel).count()
@@ -60,6 +85,21 @@ async def update_user(
     db: Session = Depends(get_db),
     current_user: UserOut = Depends(get_current_user),
 ):
+    """
+    Update a user by their ID.
+
+    Args:
+        user_id (UUID): The ID of the user to update.
+        user (UserUpdate): The updated user data.
+        db (Session, optional): The database session. Defaults to Depends(get_db).
+        current_user (UserOut, optional): The current authenticated user. Defaults to Depends(get_current_user).
+
+    Raises:
+        ForbiddenException: If the current user is not authorized to update the user.
+
+    Returns:
+        ApiResponse[UserOut]: The API response containing the updated user data.
+    """
     if current_user.id != user_id:
         raise ForbiddenException
 
@@ -78,6 +118,17 @@ async def delete_user(
     db: Session = Depends(get_db),
     current_user: UserOut = Depends(get_current_user),
 ):
+    """
+    Delete a user by their ID.
+
+    Parameters:
+    - user_id (UUID): The ID of the user to be deleted.
+    - db (Session, optional): The database session. Defaults to Depends(get_db).
+    - current_user (UserOut, optional): The current authenticated user. Defaults to Depends(get_current_user).
+
+    Returns:
+    - ApiResponse[str]: The API response indicating the success or failure of the operation.
+    """
     if current_user.id != user_id and current_user.role != "admin":
         raise ForbiddenException
     message = UserController.delete_user_by_id(db, user_id=user_id)
