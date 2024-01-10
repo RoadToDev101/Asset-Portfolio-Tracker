@@ -1,9 +1,9 @@
 import os
 from typing import Annotated
 from dotenv import load_dotenv
-from app.utils.jwt import create_access_token
+from app.utils.jwt import create_access_token, decode_access_token
 from datetime import timedelta
-from fastapi import APIRouter, Depends, status, Response
+from fastapi import APIRouter, Depends, status, Response, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from app.dependencies import get_db
@@ -11,6 +11,7 @@ from app.controllers.user_controller import UserController
 from app.schemas.user_schema import UserCreate
 from app.utils.api_response import TokenResponse
 from app.schemas.access_token_schema import TokenWithData
+from app.utils.custom_exceptions import ForbiddenException, NotFoundException
 
 load_dotenv()
 
@@ -67,7 +68,7 @@ async def login(
         httponly=True,
         max_age=refresh_token_lifespan.total_seconds(),  # Cookie lifespan in seconds
         expires=refresh_token_lifespan,  # Cookie expiry date
-        secure=os.getenv("SECURE_COOKIE"),
+        secure=bool(os.getenv("SECURE_COOKIE")),
     )
 
     return TokenResponse[TokenWithData].token_response(
@@ -75,6 +76,50 @@ async def login(
         token_type=authenticated_user.token_type,
         user_id=authenticated_user.user_id,
         message="User logged in successfully",
+    )
+
+
+@router.get(
+    "/refresh",
+    response_model=TokenResponse[TokenWithData],
+    status_code=status.HTTP_200_OK,
+)
+async def refresh(
+    request: Request,
+    response: Response,
+):
+    # Get Refresh Token from Header
+    refresh_token = request.cookies.get("refresh_token")
+    if not refresh_token:
+        raise NotFoundException("Refresh token not found")
+
+    # Decode Refresh Token
+    decoded_refresh_token = decode_access_token(refresh_token)
+    if not decoded_refresh_token:
+        raise ForbiddenException
+
+    # Create new Access Token
+    access_token_lifespan = timedelta(days=float(os.getenv("JWT_LIFETIME_DAYS")))
+    access_token = create_access_token(
+        data={"sub": decoded_refresh_token["sub"]},
+        expires_delta=access_token_lifespan,
+    )
+
+    # Set new Refresh Token in HTTP-Only Cookie
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        httponly=True,
+        max_age=access_token_lifespan.total_seconds(),  # Cookie lifespan in seconds
+        expires=access_token_lifespan,  # Cookie expiry date
+        secure=bool(os.getenv("SECURE_COOKIE")),
+    )
+
+    return TokenResponse[TokenWithData].token_response(
+        access_token=access_token,
+        token_type="bearer",
+        user_id=decoded_refresh_token["sub"],
+        message="Access token refreshed successfully",
     )
 
 

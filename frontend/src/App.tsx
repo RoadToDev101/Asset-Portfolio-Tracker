@@ -4,6 +4,10 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Home from "@components/Home";
 import NotFound from "@components/NotFound";
 import Dashboard from "@components/Dashboard";
+import Login from "@components/Authentication/Login";
+import Register from "@components/Authentication/Register";
+import AuthProvider from "@/context/AuthProvider";
+import ProtectedRoute from "@components/ProtectedRoute";
 
 // TODO: Apply when implement SuperTokens for authentication
 // import SuperTokens, { SuperTokensWrapper } from "supertokens-auth-react";
@@ -64,11 +68,18 @@ import Dashboard from "@components/Dashboard";
 const App: React.FC = () => {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="*" element={<NotFound />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-      </Routes>
+      <AuthProvider>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route
+            path="/dashboard"
+            element={<ProtectedRoute component={Dashboard} />}
+          />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </AuthProvider>
     </BrowserRouter>
   );
 };

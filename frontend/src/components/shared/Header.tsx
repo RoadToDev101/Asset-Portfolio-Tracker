@@ -5,14 +5,23 @@ import {
   NavigationMenuLink,
 } from "@ui/navigation-menu";
 import { Button } from "@ui/button";
+import { Link } from "react-router-dom";
 
 const Header = () => {
   return (
     <header className="p-4 lg:px-8 h-16 grid grid-cols-3 items-center bg-gradient-to-r bg-secondary text-primary shadow-md fixed w-full top-0 z-50">
       <div className="flex items-center text-xl font-bold sm:block justify-start">
-        <a aria-label="Homepage" href="/">
-          Portfolio Tracker
-        </a>
+        <Link aria-label="Homepage" to="/" className="flex items-center">
+          <img
+            src="/assets/icons/logo.svg"
+            alt="CryptoTracker"
+            width={30}
+            height={30}
+          />
+          <div className="pl-3">
+            <span>Portfolio Tracker</span>
+          </div>
+        </Link>
       </div>
       <nav className="flex justify-center items-center">
         <NavigationMenu>
@@ -51,7 +60,7 @@ const Header = () => {
             variant={"outline"}
             className="w-30 text-primary bg-transparent hover:bg-primary hover:text-secondary font-semibold border-primary"
           >
-            <a href="/dashboard">Dashboard</a>
+            <Link to="/dashboard">Dashboard</Link>
           </Button>
         </div>
       </div>

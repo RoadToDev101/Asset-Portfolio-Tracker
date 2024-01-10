@@ -10,17 +10,25 @@ import {
 import { AspectRatio } from "@ui/aspect-ratio";
 import { Button } from "@ui/button";
 import { Skeleton } from "@ui/skeleton";
+import { Link } from "react-router-dom";
 
 interface Article {
+  source: {
+    id: string;
+    name: string;
+  };
+  author: string;
   title: string;
   description: string;
   url: string;
   urlToImage: string;
   publishedAt: string;
+  content: string;
 }
 
 const TopNewsSection = () => {
   const [news, setNews] = useState<Article[]>([]);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -32,7 +40,7 @@ const TopNewsSection = () => {
         const cachedData = localStorage.getItem("news");
         if (cachedData) {
           setNews(JSON.parse(cachedData));
-          return;
+          return; // If we have cached data, don't fetch new data
         }
 
         const response = await fetch(
@@ -41,7 +49,13 @@ const TopNewsSection = () => {
           }`,
           { signal }
         );
+
         if (!response.ok) {
+          if (response.status === 429 && retryCount < 3) {
+            // We hit the rate limit, retry after 1 minute
+            setTimeout(() => fetchNews(retryCount + 1), 60000);
+            return;
+          }
           throw new Error("API request failed");
         }
         const data = await response.json();
@@ -49,29 +63,37 @@ const TopNewsSection = () => {
 
         // Save the data to localStorage
         localStorage.setItem("news", JSON.stringify(data.articles));
-      } catch (err) {
-        if (!signal.aborted) {
-          console.error(err);
-          if (retryCount < 3) {
-            setTimeout(
-              () => fetchNews(retryCount + 1),
-              1000 * (retryCount + 1)
-            );
-          } else {
-            setNews([]);
-          }
+
+        // Update the last updated time
+        setLastUpdated(new Date());
+
+        // Remove the data from localStorage after 15 mins
+        setTimeout(() => {
+          localStorage.removeItem("news");
+        }, 15 * 60 * 1000);
+      } catch (error) {
+        console.error(error);
+        if (retryCount < 3) {
+          setTimeout(() => fetchNews(retryCount + 1), 1000 * (retryCount + 1));
+        } else {
+          setNews([]);
         }
       }
     };
 
     fetchNews();
-    const intervalId = setInterval(fetchNews, 60000);
+    const intervalId = setInterval(fetchNews, 15 * 60 * 1000); // 15 minutes
 
     return () => {
       clearInterval(intervalId);
       controller.abort();
     };
   }, []);
+
+  // Re-render the component when the last updated time changes
+  useEffect(() => {
+    setNews(JSON.parse(localStorage.getItem("news") || "[]"));
+  }, [lastUpdated]);
 
   return (
     <div className="w-full py-12 md:py-24 lg:py-32">
@@ -87,20 +109,22 @@ const TopNewsSection = () => {
         </div>
         <div className="mx-auto grid max-w-sm items-start gap-8 sm:max-w-4xl sm:grid-cols-2 md:gap-12 lg:max-w-7xl lg:grid-cols-3">
           {!news.length
-            ? Array(3).fill(
-                <div className="flex items-center space-x-4">
-                  <Skeleton className="h-24 w-24" />
-                  <div className="space-y-2">
-                    <Skeleton className="h-4 w-[250px]" />
-                    <Skeleton className="h-4 w-[200px]" />
-                    <Skeleton className="h-4 w-[150px]" />
-                    <Skeleton className="h-4 w-[50px]" />
+            ? Array(3)
+                .fill(null)
+                .map((_, index) => (
+                  <div className="flex items-center space-x-4" key={index}>
+                    <Skeleton className="h-24 w-24" />
+                    <div className="space-y-2">
+                      <Skeleton className="h-4 w-[250px]" />
+                      <Skeleton className="h-4 w-[200px]" />
+                      <Skeleton className="h-4 w-[150px]" />
+                      <Skeleton className="h-4 w-[50px]" />
+                    </div>
                   </div>
-                </div>
-              )
-            : news.map((article, index) => (
+                ))
+            : news.map((article) => (
                 <Card
-                  key={index}
+                  key={article.publishedAt}
                   className="flex flex-col bg-white dark:bg-gray-700 hover:shadow-xl h-full rounded-xl overflow-hidden shadow-lg transition-shadow duration-300"
                 >
                   <CardHeader className="p-4 border-b dark:border-gray-600 flex flex-col justify-between">
@@ -157,11 +181,11 @@ const TopNewsSection = () => {
                 </Card>
               ))}
         </div>
-        <a href="/news" className="inline-block mt-8">
+        <Link to="/news" className="inline-block mt-8">
           <Button className="bg-pink-500 hover:bg-pink-800 text-white font-bold py-2 px-4 rounded">
             Explore All Crypto News
           </Button>
-        </a>
+        </Link>
       </div>
     </div>
   );

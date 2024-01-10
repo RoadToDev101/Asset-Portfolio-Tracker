@@ -17,7 +17,7 @@ from app.database.database import init_db, engine
 from fastapi.middleware.cors import CORSMiddleware
 from app.error_handling_middleware import exception_handling_middleware
 from dotenv import load_dotenv
-
+import os
 
 load_dotenv()
 
@@ -68,7 +68,7 @@ except Exception as e:
 # Set up CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[os.getenv("FRONTEND_DOMAIN")],
     # allow_origins=[app_info.website_domain],
     allow_credentials=True,
     allow_methods=["GET", "PUT", "POST", "DELETE", "OPTIONS", "PATCH"],

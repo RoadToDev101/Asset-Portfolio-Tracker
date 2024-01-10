@@ -1,3 +1,5 @@
+import { Link } from "react-router-dom";
+
 const NotFound = () => {
   return (
     <div className="flex items-center justify-center h-screen bg-gradient-to-r from-indigo-500 via-purple-400 to-pink-400">
@@ -11,12 +13,12 @@ const NotFound = () => {
         <p className="mt-4 text-gray-600">
           It seems like you found a glitch in the matrix...
         </p>
-        <a
+        <Link
           className="mt-6 inline-block bg-purple-600 text-white px-6 py-3 rounded hover:bg-pink-500 transition duration-300"
-          href="/"
+          to="/"
         >
           Teleport Back Home
-        </a>
+        </Link>
       </div>
     </div>
   );

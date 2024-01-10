@@ -2,8 +2,22 @@
 import { Button } from "@ui/button";
 import { CardTitle, CardHeader, CardContent, Card } from "@ui/card";
 import { ResponsiveLine } from "@nivo/line";
+import { AuthContext } from "@/context/AuthProvider";
+import axiosInstance from "@/api/axiosInstance";
+import { useContext } from "react";
 
 export default function Dashboard() {
+  const { performLogout } = useContext(AuthContext);
+
+  const handleLogout = async () => {
+    try {
+      await axiosInstance.get("/v1/auth/logout");
+      performLogout();
+    } catch (error) {
+      console.error("Logout failed:", error);
+    }
+  };
+
   return (
     <div className="flex flex-col w-full min-h-screen">
       <header className="flex items-center h-16 px-4 border-b shrink-0 md:px-6">
@@ -19,7 +33,15 @@ export default function Dashboard() {
           </a>
         </nav>
         <div className="flex items-center justify-end w-full gap-4 md:ml-auto md:gap-2 lg:gap-4">
-          {/* <UserButton afterSignOutUrl="/" /> */}
+          <div className="flex items-center gap-2">
+            <img
+              src="/avatar.png"
+              alt="avatar"
+              className="w-8 h-8 rounded-full"
+            />
+            <span className="text-sm font-medium">John Doe</span>
+          </div>
+          <Button onClick={handleLogout}>Logout</Button>
         </div>
       </header>
       <main className="flex min-h-[calc(100vh_-_theme(spacing.16))] flex-1 flex-col gap-4 p-4 md:gap-8 md:p-10">

@@ -31,6 +31,7 @@ interface Coin {
 
 const TopCryptoSection = () => {
   const [topCoins, setTopCoins] = useState<Coin[]>([]);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -42,7 +43,7 @@ const TopCryptoSection = () => {
         const cachedData = localStorage.getItem("topCoins");
         if (cachedData) {
           setTopCoins(JSON.parse(cachedData));
-          return;
+          return; // If we have cached data, don't fetch new data
         }
 
         const response = await fetch(
@@ -51,6 +52,11 @@ const TopCryptoSection = () => {
         );
 
         if (!response.ok) {
+          if (response.status === 429 && retryCount < 3) {
+            // We hit the rate limit, retry after 1 minute
+            setTimeout(() => fetchTopCoins(retryCount + 1), 60000);
+            return;
+          }
           throw new Error("API request failed");
         }
         const data = await response.json();
@@ -58,7 +64,19 @@ const TopCryptoSection = () => {
 
         // Save the data to localStorage
         localStorage.setItem("topCoins", JSON.stringify(data));
+
+        // Update the last updated time
+        setLastUpdated(new Date());
+
+        // Remove the data from localStorage after 15 seconds
+        setTimeout(() => {
+          localStorage.removeItem("topCoins");
+        }, 15000);
       } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          // Ignore abort errors
+          return;
+        }
         console.error(error);
         if (retryCount < 3) {
           setTimeout(
@@ -72,13 +90,18 @@ const TopCryptoSection = () => {
     };
 
     fetchTopCoins();
-    const intervalId = setInterval(fetchTopCoins, 60000);
+    const intervalId = setInterval(fetchTopCoins, 15000);
 
     return () => {
       clearInterval(intervalId);
       controller.abort();
     };
   }, []);
+
+  // Re-render the component when the last updated time changes
+  useEffect(() => {
+    setTopCoins(JSON.parse(localStorage.getItem("topCoins") || "[]"));
+  }, [lastUpdated]);
 
   return (
     <div className="w-full py-12 md:py-24 lg:py-32 bg-gradient-to-r from-cyan-500 via-purple-600 to-pink-500 text-white">

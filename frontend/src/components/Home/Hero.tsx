@@ -1,6 +1,7 @@
 import { TypeAnimation } from "react-type-animation";
 import { Button } from "@ui/button";
 import { AspectRatio } from "@ui/aspect-ratio";
+import { Link } from "react-router-dom";
 
 const Hero = () => {
   return (
@@ -38,14 +39,14 @@ const Hero = () => {
                 asChild
                 className="w-40 bg-cyan-500 hover:bg-cyan-700 text-white font-bold py-2 px-4 rounded"
               >
-                <a href="/dashboard">Get Started</a>
+                <Link to="/dashboard">Get Started</Link>
               </Button>
             </div>
           </div>
           <div className="hidden md:flex justify-center">
             <AspectRatio ratio={16 / 9} className="w-full max-w-lg">
               <img
-                alt="Crypto Tracker Interface"
+                alt="Portfolio Tracker Interface"
                 className="rounded-xl shadow-xl"
                 src="/assets/images/hero.png"
                 style={{ objectFit: "cover", width: "100%", height: "100%" }}
