@@ -27,8 +27,9 @@ services:
       POSTGRES_DB: portfolio_tracker
     ports:
       - 5433:5432
-    networks:
-      - app_network
+    # Uncomment the networks when implementing the supertokens service
+    # networks:
+    #   - app_network
     restart: unless-stopped
     healthcheck:
       test: ['CMD', 'pg_isready', '-U', 'postgres', '-d', 'portfolio_tracker']

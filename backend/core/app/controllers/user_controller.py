@@ -15,6 +15,7 @@ from app.utils.custom_exceptions import (
     NotFoundException,
     BadRequestException,
 )
+from app.schemas.access_token_schema import TokenWithData
 import os
 from dotenv import load_dotenv
 
@@ -35,7 +36,7 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 class UserController:
     @staticmethod
-    def authenticate_user(db: Session, username: str, password: str) -> str:
+    def authenticate_user(db: Session, username: str, password: str) -> TokenWithData:
         user = db.query(UserModel).filter(UserModel.username == username).first()
 
         if not user:
@@ -43,14 +44,14 @@ class UserController:
         if not verify_password(password, user.hashed_password):
             raise CredentialsException("Incorrect username or password")
 
-        access_token_expires = datetime.timedelta(
-            days=float(os.getenv("JWT_LIFETIME_DAYS"))
+        # access_token_expires = datetime.timedelta(
+        #     days=float(os.getenv("JWT_LIFETIME_DAYS"))
+        # )
+        access_token = create_access_token(data={"sub": user.id})
+        token_data = TokenWithData(
+            access_token=access_token, token_type="bearer", user_id=user.id
         )
-        access_token = create_access_token(
-            data={"sub": user.id}, expires_delta=access_token_expires
-        )
-
-        return access_token
+        return token_data
 
     @staticmethod
     def create_user(db: Session, user: UserCreate) -> UserOut:

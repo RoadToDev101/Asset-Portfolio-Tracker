@@ -13,12 +13,12 @@ from app.utils.custom_exceptions import (
     BadRequestException,
     ForbiddenException,
 )
+from fastapi.security import OAuth2PasswordBearer
 
 # from app.utils.access_token import TokenWithData
 
 
-def oauth2_scheme(request: Request):
-    return request.cookies.get("access_token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
 
 def get_db():
