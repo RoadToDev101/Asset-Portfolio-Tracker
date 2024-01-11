@@ -1,0 +1,88 @@
+version: '3'
+
+services:
+  # Note: If you are assigning a custom name to your db service on the line below, make sure it does not contain underscores
+  # db:
+  #   image: 'postgres:latest'
+  #   environment:
+  #     POSTGRES_USER: supertokens_user
+  #     POSTGRES_PASSWORD: somePassword
+  #     POSTGRES_DB: supertokens
+  #   ports:
+  #     - 5432:5432
+  #   networks:
+  #     - app_network
+  #   restart: unless-stopped
+  #   healthcheck:
+  #     test: ['CMD', 'pg_isready', '-U', 'supertokens_user', '-d', 'supertokens']
+  #     interval: 5s
+  #     timeout: 5s
+  #     retries: 5
+
+  core_db:
+    image: 'postgres:latest'
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: portfolio_tracker
+    ports:
+      - 5432:5432
+    networks:
+      - app_network
+    restart: unless-stopped
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD', 'pg_isready', '-U', 'postgres', '-d', 'portfolio_tracker']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  core:
+    depends_on:
+      core_db:
+          condition: service_healthy
+    build:
+      context: ./backend/core
+      dockerfile: Dockerfile
+    ports:
+      - 8000:8000
+    networks:
+      - app_network
+    restart: unless-stopped
+
+#   supertokens:
+#     image: registry.supertokens.io/supertokens/supertokens-postgresql:7.0
+#     depends_on:
+#       db:
+#         condition: service_healthy
+#     ports:
+#       - 3567:3567
+#     environment:
+#       POSTGRESQL_CONNECTION_URI: "postgresql://supertokens_user:somePassword@db:5432/supertokens"
+#     networks:
+#       - app_network
+#     restart: unless-stopped
+#     healthcheck:
+#       test: >
+#         bash -c 'exec 3<>/dev/tcp/127.0.0.1/3567 && echo -e "GET /hello HTTP/1.1\r\nhost: 127.0.0.1:3567\r\nConnection: close\r\n\r\n" >&3 && cat <&3 | grep "Hello"'
+#       interval: 10s
+#       timeout: 5s
+#       retries: 5
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    networks:
+      - app_network
+    ports:
+      - 80:80
+    restart: unless-stopped
+
+volumes:
+  db_data:
+
+networks:
+  app_network:
+    driver: bridge
