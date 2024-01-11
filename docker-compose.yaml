@@ -26,16 +26,30 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: portfolio_tracker
     ports:
-      - 5433:5432
-    # Uncomment the networks when implementing the supertokens service
-    # networks:
-    #   - app_network
+      - 5432:5432
+    networks:
+      - app_network
     restart: unless-stopped
+    volumes:
+      - db_data:/var/lib/postgresql/data
     healthcheck:
       test: ['CMD', 'pg_isready', '-U', 'postgres', '-d', 'portfolio_tracker']
       interval: 5s
       timeout: 5s
       retries: 5
+
+  core:
+    depends_on:
+      core_db:
+          condition: service_healthy
+    build:
+      context: ./backend/core
+      dockerfile: Dockerfile
+    ports:
+      - 8000:8000
+    networks:
+      - app_network
+    restart: unless-stopped
 
 #   supertokens:
 #     image: registry.supertokens.io/supertokens/supertokens-postgresql:7.0
@@ -56,6 +70,19 @@ services:
 #       timeout: 5s
 #       retries: 5
 
-# networks:
-#   app_network:
-#     driver: bridge
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    networks:
+      - app_network
+    ports:
+      - 80:80
+    restart: unless-stopped
+
+volumes:
+  db_data:
+
+networks:
+  app_network:
+    driver: bridge

@@ -68,11 +68,11 @@ except Exception as e:
 # Set up CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[os.getenv("FRONTEND_DOMAIN")],
+    allow_origins=[os.getenv("FRONTEND_DOMAIN"), "http://localhost"],
     # allow_origins=[app_info.website_domain],
     allow_credentials=True,
-    allow_methods=["GET", "PUT", "POST", "DELETE", "OPTIONS", "PATCH"],
-    allow_headers=["Content-Type"],
+    allow_methods=["*"],
+    allow_headers=["*"],
     # allow_headers=["Content-Type"] + get_all_cors_headers(),
 )
 
