@@ -31,21 +31,31 @@ interface Coin {
 
 const TopCryptoSection = () => {
   const [topCoins, setTopCoins] = useState<Coin[]>([]);
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
     const signal = controller.signal;
 
+    const isDataStale = (timestamp: number) => {
+      return new Date().getTime() - timestamp > 30000; // Data is stale if older than 30 seconds
+    };
+
+    const saveToLocalStorage = (data: Coin[]) => {
+      const dataWithTimestamp = {
+        timestamp: new Date().getTime(),
+        data: data,
+      };
+      localStorage.setItem("topCoins", JSON.stringify(dataWithTimestamp));
+    };
+
     const fetchTopCoins = async (retryCount = 0) => {
       try {
-        // Check if the data is in localStorage
         const cachedData = localStorage.getItem("topCoins");
-        if (cachedData) {
-          setTopCoins(JSON.parse(cachedData));
-          return; // If we have cached data, don't fetch new data
+        const cachedObject = cachedData ? JSON.parse(cachedData) : null;
+        if (cachedObject && !isDataStale(cachedObject.timestamp)) {
+          setTopCoins(cachedObject.data);
+          return;
         }
-
         const response = await fetch(
           "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=20&page=1",
           { signal }
@@ -53,55 +63,40 @@ const TopCryptoSection = () => {
 
         if (!response.ok) {
           if (response.status === 429 && retryCount < 3) {
-            // We hit the rate limit, retry after 1 minute
-            setTimeout(() => fetchTopCoins(retryCount + 1), 60000);
+            setTimeout(
+              () => fetchTopCoins(retryCount + 1),
+              Math.pow(2, retryCount) * 1000
+            );
             return;
           }
           throw new Error("API request failed");
         }
+
         const data = await response.json();
         setTopCoins(data);
-
-        // Save the data to localStorage
-        localStorage.setItem("topCoins", JSON.stringify(data));
-
-        // Update the last updated time
-        setLastUpdated(new Date());
-
-        // Remove the data from localStorage after 15 seconds
-        setTimeout(() => {
-          localStorage.removeItem("topCoins");
-        }, 15000);
+        saveToLocalStorage(data);
       } catch (error) {
         if (error instanceof DOMException && error.name === "AbortError") {
-          // Ignore abort errors
           return;
         }
         console.error(error);
         if (retryCount < 3) {
           setTimeout(
             () => fetchTopCoins(retryCount + 1),
-            1000 * (retryCount + 1)
+            Math.pow(2, retryCount) * 1000
           );
-        } else {
-          setTopCoins([]);
         }
       }
     };
 
     fetchTopCoins();
-    const intervalId = setInterval(fetchTopCoins, 15000);
+    const intervalId = setInterval(() => fetchTopCoins(), 30000);
 
     return () => {
       clearInterval(intervalId);
       controller.abort();
     };
   }, []);
-
-  // Re-render the component when the last updated time changes
-  useEffect(() => {
-    setTopCoins(JSON.parse(localStorage.getItem("topCoins") || "[]"));
-  }, [lastUpdated]);
 
   return (
     <div className="w-full py-12 md:py-24 lg:py-32 bg-gradient-to-r from-cyan-500 via-purple-600 to-pink-500 text-white">

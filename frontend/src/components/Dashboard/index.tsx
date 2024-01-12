@@ -2,25 +2,26 @@
 import { Button } from "@ui/button";
 import { CardTitle, CardHeader, CardContent, Card } from "@ui/card";
 import { ResponsiveLine } from "@nivo/line";
-import { AuthContext } from "@/context/AuthProvider";
-import axiosInstance from "@/api/axiosInstance";
-import { useContext } from "react";
+// import { AuthContext } from "@/context/AuthProvider";
+// import axiosInstance from "@/api/axiosInstance";
+// import { useContext } from "react";
+import Header from "../shared/Header";
 
 export default function Dashboard() {
-  const { performLogout } = useContext(AuthContext);
+  // const { performLogout } = useContext(AuthContext);
 
-  const handleLogout = async () => {
-    try {
-      await axiosInstance.get("/v1/auth/logout");
-      performLogout();
-    } catch (error) {
-      console.error("Logout failed:", error);
-    }
-  };
+  // const handleLogout = async () => {
+  //   try {
+  //     await axiosInstance.get("/v1/auth/logout");
+  //     performLogout();
+  //   } catch (error) {
+  //     console.error("Logout failed:", error);
+  //   }
+  // };
 
   return (
     <div className="flex flex-col w-full min-h-screen">
-      <header className="flex items-center h-16 px-4 border-b shrink-0 md:px-6">
+      {/* <header className="flex items-center h-16 px-4 border-b shrink-0 md:px-6">
         <nav className="flex-col hidden gap-6 text-lg font-medium md:flex md:flex-row md:items-center md:gap-5 md:text-sm lg:gap-6">
           <a className="font-bold" href="/dashboard">
             Dashboard
@@ -43,7 +44,8 @@ export default function Dashboard() {
           </div>
           <Button onClick={handleLogout}>Logout</Button>
         </div>
-      </header>
+      </header> */}
+      <Header />
       <main className="flex min-h-[calc(100vh_-_theme(spacing.16))] flex-1 flex-col gap-4 p-4 md:gap-8 md:p-10">
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <Card>
