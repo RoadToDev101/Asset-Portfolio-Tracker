@@ -15,11 +15,8 @@ from app.utils.custom_exceptions import (
     NotFoundException,
     BadRequestException,
 )
-from app.schemas.access_token_schema import TokenWithData
-import os
-from dotenv import load_dotenv
+from app.schemas.access_token_schema import Payload
 
-load_dotenv()
 
 logging.getLogger("passlib").setLevel(logging.ERROR)
 
@@ -36,7 +33,7 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 class UserController:
     @staticmethod
-    def authenticate_user(db: Session, username: str, password: str) -> TokenWithData:
+    def authenticate_user(db: Session, username: str, password: str) -> Payload:
         user = db.query(UserModel).filter(UserModel.username == username).first()
 
         if not user:
@@ -48,8 +45,12 @@ class UserController:
         #     days=float(os.getenv("JWT_LIFETIME_DAYS"))
         # )
         access_token = create_access_token(data={"sub": user.id})
-        token_data = TokenWithData(
-            access_token=access_token, token_type="bearer", user_id=user.id
+        token_data = Payload(
+            access_token=access_token,
+            token_type="bearer",
+            user_id=user.id,
+            role=user.role,
+            is_active=user.is_active,
         )
         return token_data
 

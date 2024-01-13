@@ -10,7 +10,7 @@ from app.dependencies import get_db
 from app.controllers.user_controller import UserController
 from app.schemas.user_schema import UserCreate
 from app.utils.api_response import TokenResponse
-from app.schemas.access_token_schema import TokenWithData
+from app.schemas.access_token_schema import Payload
 from app.utils.custom_exceptions import ForbiddenException, NotFoundException
 
 load_dotenv()
@@ -21,7 +21,7 @@ router = APIRouter(prefix="/api/v1/auth", tags=["Authentication"])
 @router.post(
     "/register",
     status_code=status.HTTP_201_CREATED,
-    response_model=TokenResponse[TokenWithData],
+    response_model=TokenResponse[Payload],
 )
 async def register(user: UserCreate, db: Session = Depends(get_db)):
     """
@@ -32,7 +32,7 @@ async def register(user: UserCreate, db: Session = Depends(get_db)):
         db (Session, optional): The database session. Defaults to Depends(get_db).
 
     Returns:
-        TokenResponse[TokenWithData]: The token response containing the access token, token type, user ID, and message.
+        TokenResponse[Payload]: The token response containing the access token, token type, user ID, and message.
     """
     new_user = UserController.create_user(db, user=user)
 
@@ -43,17 +43,19 @@ async def register(user: UserCreate, db: Session = Depends(get_db)):
         expires_delta=expires_delta,
     )
 
-    return TokenResponse[TokenWithData].token_response(
+    return TokenResponse[Payload].token_response(
         access_token=access_token,
         token_type="bearer",
         user_id=new_user.id,
+        role=new_user.role,
+        is_active=new_user.is_active,
         message="User registered successfully",
     )
 
 
 @router.post(
     "/login",
-    response_model=TokenResponse[TokenWithData],
+    response_model=TokenResponse[Payload],
     status_code=status.HTTP_200_OK,
 )
 async def login(
@@ -70,7 +72,7 @@ async def login(
         db (Session, optional): The database session. Defaults to Depends(get_db).
 
     Returns:
-        TokenResponse[TokenWithData]: The response containing the access token, token type, user ID, and message.
+        TokenResponse[Payload]: The response containing the access token, token type, user ID, and message.
     """
     authenticated_user = UserController.authenticate_user(
         db, form_data.username, form_data.password
@@ -92,22 +94,25 @@ async def login(
         secure=bool(os.getenv("SECURE_COOKIE")),
     )
 
-    return TokenResponse[TokenWithData].token_response(
+    return TokenResponse[Payload].token_response(
         access_token=authenticated_user.access_token,
         token_type=authenticated_user.token_type,
         user_id=authenticated_user.user_id,
+        role=authenticated_user.role,
+        is_active=authenticated_user.is_active,
         message="User logged in successfully",
     )
 
 
 @router.get(
     "/refresh",
-    response_model=TokenResponse[TokenWithData],
+    response_model=TokenResponse[Payload],
     status_code=status.HTTP_200_OK,
 )
 async def refresh(
     request: Request,
     response: Response,
+    db: Session = Depends(get_db),
 ):
     """
     Refreshes the access token by decoding the refresh token from the request cookies,
@@ -122,7 +127,7 @@ async def refresh(
         ForbiddenException: If the decoded refresh token is invalid.
 
     Returns:
-        TokenResponse[TokenWithData]: The response containing the new access token and user information.
+        TokenResponse[Payload]: The response containing the new access token and user information.
     """
     # Get Refresh Token from Header
     refresh_token = request.cookies.get("refresh_token")
@@ -133,6 +138,10 @@ async def refresh(
     decoded_refresh_token = decode_access_token(refresh_token)
     if not decoded_refresh_token:
         raise ForbiddenException
+
+    # Get user information from decoded refresh token
+    user_id = decoded_refresh_token["sub"]
+    user = UserController.get_user_by_id(db, user_id)
 
     # Create new Access Token
     access_token_lifespan = timedelta(days=float(os.getenv("JWT_LIFETIME_DAYS")))
@@ -151,10 +160,12 @@ async def refresh(
         secure=bool(os.getenv("SECURE_COOKIE")),
     )
 
-    return TokenResponse[TokenWithData].token_response(
+    return TokenResponse[Payload].token_response(
         access_token=access_token,
         token_type="bearer",
-        user_id=decoded_refresh_token["sub"],
+        user_id=user.id,
+        role=user.role,
+        is_active=user.is_active,
         message="Access token refreshed successfully",
     )
 

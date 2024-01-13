@@ -37,7 +37,7 @@ const TopCryptoSection = () => {
     const signal = controller.signal;
 
     const isDataStale = (timestamp: number) => {
-      return new Date().getTime() - timestamp > 30000; // Data is stale if older than 30 seconds
+      return new Date().getTime() - timestamp > 60000; // Data is stale if older than 60 seconds
     };
 
     const saveToLocalStorage = (data: Coin[]) => {
@@ -90,7 +90,7 @@ const TopCryptoSection = () => {
     };
 
     fetchTopCoins();
-    const intervalId = setInterval(() => fetchTopCoins(), 30000);
+    const intervalId = setInterval(() => fetchTopCoins(), 60000);
 
     return () => {
       clearInterval(intervalId);

@@ -1,13 +1,17 @@
 import React from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
-import Home from "@components/Home";
-import NotFound from "@components/NotFound";
-import Dashboard from "@components/Dashboard";
-import Login from "@components/Authentication/Login";
-import Register from "@components/Authentication/Register";
+import Home from "@pages/home";
+import NotFound from "@pages/NotFound";
+import Dashboard from "@pages/dashboard";
+import Login from "@pages/authentication/Login";
+import Register from "@pages/authentication/Register";
 import AuthProvider from "@/context/AuthProvider";
 import ProtectedRoute from "@components/ProtectedRoute";
+import Portfolio from "@pages/dashboard/Portfolio";
+import Overview from "@pages/dashboard/Overview";
+import UserAccount from "@pages/dashboard/UserAccount";
+import PortfolioDetail from "@pages/dashboard/PortfolioDetail";
 
 // TODO: Apply when implement SuperTokens for authentication
 // import SuperTokens, { SuperTokensWrapper } from "supertokens-auth-react";
@@ -69,16 +73,24 @@ const App: React.FC = () => {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route
-            path="/dashboard"
-            element={<ProtectedRoute component={Dashboard} />}
-          />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <div className="flex flex-col min-h-screen">
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route
+              path="/dashboard/*"
+              element={<ProtectedRoute component={Dashboard} />}
+            >
+              <Route index element={<Overview />} />
+              <Route path="portfolio" element={<Portfolio />} />
+              <Route path="portfolio/:id" element={<PortfolioDetail />} />
+              <Route path="user" element={<UserAccount />} />
+              <Route path="*" element={<NotFound />} />
+            </Route>
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </div>
       </AuthProvider>
     </BrowserRouter>
   );

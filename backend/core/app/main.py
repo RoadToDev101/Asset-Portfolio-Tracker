@@ -79,6 +79,12 @@ app.add_middleware(
 # Set up error handling middleware
 app.middleware("http")(exception_handling_middleware)
 
+
+@app.get("/")
+async def root():
+    return {"message": "Hello World"}
+
+
 # Include routers from the routes module
 app.include_router(user_route.router)
 app.include_router(authentication_route.router)

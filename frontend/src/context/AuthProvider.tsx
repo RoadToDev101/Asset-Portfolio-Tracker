@@ -5,18 +5,30 @@ import { useNavigate } from "react-router-dom";
 interface AuthState {
   token: string | null;
   user_id: string | null;
+  role: string | null;
+  is_active: boolean | null;
 }
 
 interface AuthContextProps {
   authState: AuthState;
-  performLogin: (token: string | null, user_id: string | null) => void;
+  performLogin: (
+    token: string | null,
+    user_id: string | null,
+    role: string | null,
+    is_active: boolean | null
+  ) => void;
   performLogout: () => void;
   updateAccessToken: (newToken: string) => void;
   loading: boolean;
 }
 
 export const AuthContext = createContext<AuthContextProps>({
-  authState: { token: null, user_id: null },
+  authState: {
+    token: null,
+    user_id: null,
+    role: null,
+    is_active: null,
+  },
   performLogin: () => {},
   performLogout: () => {},
   updateAccessToken: () => {},
@@ -27,6 +39,8 @@ const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [authState, setAuthState] = useState<AuthState>({
     token: localStorage.getItem("token"),
     user_id: null,
+    role: null,
+    is_active: null,
   });
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -50,6 +64,8 @@ const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
           setAuthState((prevState) => ({
             ...prevState,
             token: response.data.access_token,
+            user_id: response.data.user_id,
+            role: response.data.role,
           }));
           localStorage.setItem("token", response.data.access_token);
         }
@@ -63,8 +79,13 @@ const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     checkSession();
   }, [navigate, isLoggingOut, authState.token]);
 
-  const performLogin = (token: string | null, user_id: string | null) => {
-    setAuthState({ token, user_id });
+  const performLogin = (
+    token: string | null,
+    user_id: string | null,
+    role: string | null,
+    is_active: boolean | null
+  ) => {
+    setAuthState({ token, user_id, role, is_active });
     if (token) {
       localStorage.setItem("token", token);
     }
@@ -73,7 +94,7 @@ const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
 
   const performLogout = () => {
     setIsLoggingOut(true);
-    setAuthState({ token: null, user_id: null });
+    setAuthState({ token: null, user_id: null, role: null, is_active: null });
     localStorage.removeItem("token");
     navigate("/");
   };
