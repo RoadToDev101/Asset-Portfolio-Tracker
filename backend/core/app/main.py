@@ -13,7 +13,7 @@ from app.routes import (
     portfolio_route,
     transaction_route,
 )
-from app.database.database import init_db, engine
+from app.database.db_config import init_db, engine
 from fastapi.middleware.cors import CORSMiddleware
 from app.error_handling_middleware import exception_handling_middleware
 from dotenv import load_dotenv

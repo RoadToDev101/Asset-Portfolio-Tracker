@@ -5,7 +5,6 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 from app.schemas.user_schema import UserCreate, UserUpdate, UserOut
 from app.models.user_model import User as UserModel
-import datetime
 from app.utils.jwt import create_access_token
 from uuid import UUID
 import logging
@@ -41,9 +40,6 @@ class UserController:
         if not verify_password(password, user.hashed_password):
             raise CredentialsException("Incorrect username or password")
 
-        # access_token_expires = datetime.timedelta(
-        #     days=float(os.getenv("JWT_LIFETIME_DAYS"))
-        # )
         access_token = create_access_token(data={"sub": user.id})
         token_data = Payload(
             access_token=access_token,

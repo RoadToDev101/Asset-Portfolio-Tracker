@@ -1,6 +1,6 @@
 from fastapi import Depends, Request
 from sqlalchemy.orm import Session
-from app.database.database import SessionLocal
+from app.database.db_config import SessionLocal
 from app.controllers.user_controller import UserController
 from app.schemas.user_schema import UserOut
 from app.utils.jwt import decode_access_token
