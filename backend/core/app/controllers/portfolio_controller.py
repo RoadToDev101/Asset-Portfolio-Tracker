@@ -14,7 +14,7 @@ from app.models.user_model import User as UserModel
 from app.utils.convert import remove_private_attributes
 from uuid import UUID
 from app.utils.custom_exceptions import NotFoundException, BadRequestException
-from .transaction_controller import TransactionController, get_transaction_current_value
+from .transaction_controller import TransactionController
 from app.models.transaction_model import TransactionType
 from app.utils.fetch_price import fetch_crypto_price
 
@@ -29,7 +29,9 @@ def calculate_portfolio_value(db, portfolio_id) -> float:
 
     total_value = 0
     for transaction in transactions[0]:
-        asset_current_market_price = get_transaction_current_value(transaction)
+        asset_current_market_price = (
+            TransactionController.get_transaction_current_value(transaction)
+        )
         if (
             transaction.transaction_type == TransactionType.BUY
             or transaction.transaction_type == TransactionType.TRANSFER_IN
