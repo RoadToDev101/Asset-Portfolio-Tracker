@@ -1,11 +1,10 @@
 from typing import Tuple, List
 from sqlalchemy import ClauseElement, or_
 from app.utils.custom_exceptions import BadRequestException, NotFoundException
-from app.utils.common_utils import remove_private_attributes
+from app.utils.convert import remove_private_attributes
 from uuid import UUID
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.dialects import postgresql
 from app.schemas.transaction_schema import (
     TransactionCreate,
     TransactionOut,
@@ -13,8 +12,13 @@ from app.schemas.transaction_schema import (
 )
 from app.models.transaction_model import Transaction as TransactionModel
 from app.models.user_model import User as UserModel
-from app.models.portfolio_model import Portfolio as PortfolioModel
+from app.models.portfolio_model import Portfolio as PortfolioModel, AssetType
 from datetime import datetime
+from app.utils.fetch_price import (
+    fetch_crypto_price,
+    fetch_stocks_price,
+    fetch_others_price,
+)
 
 
 class TransactionController:
@@ -81,8 +85,8 @@ class TransactionController:
     def _get_transactions(
         db: Session,
         filter_condition: ClauseElement = None,
-        skip: int = 0,
-        limit: int = 10,
+        skip: int = None,
+        limit: int = None,
         start_time: datetime = None,
         end_time: datetime = None,
         include_deleted: bool = False,
@@ -113,8 +117,14 @@ class TransactionController:
                 )
 
             total = query.count()
-            transactions = query.offset(skip).limit(limit).all()
 
+            # if skip is None:
+            #     transactions = query.limit(limit).all()
+            # elif limit is None:
+            #     transactions = query.offset(skip).all()
+            # else:
+            #     transactions = query.offset(skip).limit(limit).all()
+            transactions = query.offset(skip).limit(limit).all()
             results = []
             for transaction in transactions:
                 transaction_dict = remove_private_attributes(transaction)
@@ -145,19 +155,27 @@ class TransactionController:
         limit: int = 10,
         start_time: datetime = None,
         end_time: datetime = None,
+        include_deleted: bool = False,
     ) -> Tuple[List[TransactionOut], int]:
         return TransactionController._get_transactions(
-            db, TransactionModel.user_id == user_id, skip, limit, start_time, end_time
+            db,
+            TransactionModel.user_id == user_id,
+            skip,
+            limit,
+            start_time,
+            end_time,
+            include_deleted,
         )
 
     @staticmethod
     def get_transactions_by_portfolio_id(
         db: Session,
         portfolio_id: UUID,
-        skip: int = 0,
-        limit: int = 10,
+        skip: int = None,
+        limit: int = None,
         start_time: datetime = None,
         end_time: datetime = None,
+        include_deleted: bool = False,
     ) -> Tuple[List[TransactionOut], int]:
         return TransactionController._get_transactions(
             db,
@@ -166,7 +184,22 @@ class TransactionController:
             limit,
             start_time,
             end_time,
+            include_deleted,
         )
+
+    @staticmethod
+    def get_transaction_current_value(transaction: TransactionModel) -> float:
+        currency = transaction.currency.lower()
+        if transaction.asset_type == AssetType.STOCKS:
+            price = fetch_stocks_price(transaction.asset_name, currency)
+        elif transaction.asset_type == AssetType.CRYPTO:
+            price = fetch_crypto_price(transaction.asset_name, currency)
+        elif transaction.asset_type == AssetType.OTHERS:
+            price = fetch_others_price(transaction.asset_name, currency)
+        else:
+            raise BadRequestException("Invalid asset type")
+
+        return price if price is not None else 0.0
 
     @staticmethod
     def update_transaction_by_id(
@@ -178,8 +211,8 @@ class TransactionController:
             raise NotFoundException("Transaction not found")
 
         # Update the transaction attributes
-        if transaction.description:
-            db_transaction.description = transaction.description
+        if transaction.note:
+            db_transaction.note = transaction.note
         if transaction.transaction_type:
             db_transaction.transaction_type = transaction.transaction_type
         if transaction.ticker_symbol:

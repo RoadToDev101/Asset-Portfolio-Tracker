@@ -34,7 +34,7 @@ const Portfolio = () => {
     const fetchPortfolios = async () => {
       try {
         const response = await axiosInstance.get(
-          `/v1/portfolios?page=${currentPage}&page_size=2`
+          `/v1/portfolios?page=${currentPage}&page_size=10`
         );
         if (response.data && response.data.success) {
           setPortfolios(response.data.data.data);

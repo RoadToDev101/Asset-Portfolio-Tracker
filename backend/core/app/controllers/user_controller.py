@@ -8,7 +8,7 @@ from app.models.user_model import User as UserModel
 from app.utils.jwt import create_access_token
 from uuid import UUID
 import logging
-from app.utils.common_utils import remove_private_attributes
+from app.utils.convert import remove_private_attributes
 from app.utils.custom_exceptions import (
     CredentialsException,
     NotFoundException,

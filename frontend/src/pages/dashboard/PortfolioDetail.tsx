@@ -1,21 +1,120 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Button } from "@/components/ui/button";
-import { CardTitle, CardHeader, CardContent, Card } from "@/components/ui/card";
+import {
+  CardTitle,
+  CardHeader,
+  CardContent,
+  Card,
+  CardDescription,
+} from "@/components/ui/card";
 import { ResponsiveLine } from "@nivo/line";
 import { ResponsivePie } from "@nivo/pie";
+import { FileEditIcon, TrashIcon } from "lucide-react";
+import { useParams } from "react-router-dom";
+import { useEffect, useState } from "react";
+import axiosInstance from "@/api/axiosInstance";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
+import RenderAssetsTable from "./AssetsTable";
+
+interface PortfolioDetailProps {
+  id: string;
+  name: string;
+  description: string;
+  user_id: string;
+  asset_type: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// interface Transaction {
+//   id: string;
+//   description: string;
+//   transaction_type: string;
+//   asset_type: string;
+//   user_id: string;
+//   portfolio_id: string;
+//   ticker_symbol: string;
+//   amount: number;
+//   currency: string;
+//   unit_price: number;
+//   transaction_fee: number;
+//   created_at: string;
+//   updated_at: string;
+//   deleted_at: string;
+// }
 
 const PortfolioDetail = () => {
+  const { id } = useParams<{ id: string }>();
+  const [portfolio, setPortfolio] = useState<PortfolioDetailProps>();
+  // const [transactions, setTransactions] = useState<Transaction[]>([]);
+  // const [currentTransactionsTablePage, setCurrentTransactionsTablePage] =
+  //   useState(1);
+  // const [currentAssetsTablePage, setCurrentAssetsTablePage] = useState(1);
+  // const [refreshKey, setRefreshKey] = useState(0);
+
+  useEffect(() => {
+    const fetchPortfolio = async () => {
+      try {
+        const response = await axiosInstance.get(`/v1/portfolios/${id}`);
+        if (response.data && response.data.success) {
+          setPortfolio(response.data.data);
+        }
+      } catch (error) {
+        console.error("Error fetching portfolio:", error);
+      }
+    };
+    fetchPortfolio();
+  }, [id]);
+
+  // useEffect(() => {
+  //   const fetchTransactions = async () => {
+  //     try {
+  //       const response = await axiosInstance.get(
+  //         `/v1/transactions/portfolio/${id}?page=1&page_size=10`
+  //       );
+  //       if (response.data && response.data.success) {
+  //         setTransactions(response.data.data);
+  //       }
+  //     } catch (error) {
+  //       console.error("Error fetching transactions:", error);
+  //     }
+  //   };
+  //   fetchTransactions();
+  // }, [id]);
+
+  if (!portfolio) {
+    return (
+      <div className="flex flex-col items-center justify-center flex-1">
+        <Alert variant="destructive" className="w-80">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>Portfolio not found.</AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
   return (
     <main className="flex min-h-[calc(100vh-_theme(spacing.16))] flex-1 flex-col gap-4 p-4 md:gap-8 md:p-10">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-          <CardTitle className="text-lg font-medium">Portfolio 1</CardTitle>
+          <div className="flex flex-col space-y-1">
+            <CardTitle className="text-lg font-medium">
+              {portfolio.name.toUpperCase()}
+            </CardTitle>
+            <CardDescription className="text-sm text-gray-500">
+              {portfolio.description}
+              <br />
+              Asset Type: {portfolio.asset_type}
+            </CardDescription>
+          </div>
           <div className="flex items-center gap-2">
             <Button size="icon" variant="ghost">
               <FileEditIcon className="w-4 h-4 text-blue-500" />
             </Button>
             <Button size="icon" variant="ghost">
-              <DeleteIcon className="w-4 h-4 text-red-500" />
+              <TrashIcon className="w-4 h-4 text-red-500" />
             </Button>
           </div>
         </CardHeader>
@@ -34,38 +133,7 @@ const PortfolioDetail = () => {
           </div>
         </CardContent>
       </Card>
-      <div className="flex justify-between mt-8">
-        <h2 className="text-lg font-medium">Assets</h2>
-      </div>
-      <div className="mt-4">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr>
-              <th className="py-4 px-6 bg-gray-100 font-bold uppercase text-sm text-gray-500 border-b border-gray-200">
-                Asset
-              </th>
-              <th className="py-4 px-6 bg-gray-100 font-bold uppercase text-sm text-gray-500 border-b border-gray-200">
-                Quantity
-              </th>
-              <th className="py-4 px-6 bg-gray-100 font-bold uppercase text-sm text-gray-500 border-b border-gray-200">
-                Value
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr className="hover:bg-gray-100">
-              <td className="py-4 px-6 border-b border-gray-200">BTC</td>
-              <td className="py-4 px-6 border-b border-gray-200">2</td>
-              <td className="py-4 px-6 border-b border-gray-200">$20,000.00</td>
-            </tr>
-            <tr className="hover:bg-gray-100">
-              <td className="py-4 px-6 border-b border-gray-200">ETH</td>
-              <td className="py-4 px-6 border-b border-gray-200">10</td>
-              <td className="py-4 px-6 border-b border-gray-200">$25,231.89</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <RenderAssetsTable />
       <div className="flex justify-between mt-8">
         <h2 className="text-lg font-medium">Transactions</h2>
         <Button>Add New Transaction</Button>
@@ -99,7 +167,7 @@ const PortfolioDetail = () => {
                     <FileEditIcon className="w-4 h-4 text-blue-500" />
                   </Button>
                   <Button size="icon" variant="ghost">
-                    <DeleteIcon className="w-4 h-4 text-red-500" />
+                    <TrashIcon className="w-4 h-4 text-red-500" />
                   </Button>
                 </div>
               </td>
@@ -114,7 +182,7 @@ const PortfolioDetail = () => {
                     <FileEditIcon className="w-4 h-4 text-blue-500" />
                   </Button>
                   <Button size="icon" variant="ghost">
-                    <DeleteIcon className="w-4 h-4 text-red-500" />
+                    <TrashIcon className="w-4 h-4 text-red-500" />
                   </Button>
                 </div>
               </td>
@@ -233,48 +301,6 @@ function CurvedlineChart(props: any) {
         role="application"
       />
     </div>
-  );
-}
-
-function DeleteIcon(props: any) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M20 5H9l-7 7 7 7h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Z" />
-      <line x1="18" x2="12" y1="9" y2="15" />
-      <line x1="12" x2="18" y1="9" y2="15" />
-    </svg>
-  );
-}
-
-function FileEditIcon(props: any) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M4 13.5V4a2 2 0 0 1 2-2h8.5L20 7.5V20a2 2 0 0 1-2 2h-5.5" />
-      <polyline points="14 2 14 8 20 8" />
-      <path d="M10.42 12.61a2.1 2.1 0 1 1 2.97 2.97L7.95 21 4 22l.99-3.95 5.43-5.44Z" />
-    </svg>
   );
 }
 
