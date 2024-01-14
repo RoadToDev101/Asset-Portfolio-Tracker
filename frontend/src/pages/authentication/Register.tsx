@@ -73,11 +73,16 @@ export default function Register() {
         }
       );
 
-      setMessage(response.data.message || "Registration successful!");
-      performLogin(
-        response.data.access_token,
-        response.data.user_id.toString()
-      );
+      setMessage("Registration successful! Redirecting...");
+      // Perform login after 1.5 seconds
+      setTimeout(() => {
+        performLogin(
+          response.data.access_token,
+          response.data.user_id.toString(),
+          response.data.role.toString(),
+          response.data.is_active
+        );
+      }, 3000);
     } catch (err) {
       handleError(err);
     }
@@ -191,7 +196,7 @@ export default function Register() {
           </form>
         </Form>
         {/* Error and Success Messages */}
-        <div className="text-center mt-4">
+        <div className="text-center font-semibold mt-4">
           {error && <p className="text-red-500 text-xs">{error}</p>}
           {message && <p className="text-green-500 text-xs">{message}</p>}
         </div>

@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field
 from typing import Generic, TypeVar, Optional
 from uuid import UUID
+from app.models.user_model import UserRole
 
 DataT = TypeVar("DataT")
 
@@ -50,6 +51,10 @@ class TokenResponse(ApiResponse[DataT]):
     user_id: Optional[UUID] = Field(
         None, description="User ID of the authenticated user"
     )
+    role: Optional[UserRole] = Field(None, description="Role of the authenticated user")
+    is_active: Optional[bool] = Field(
+        None, description="Whether the authenticated user is active or not"
+    )
 
     @classmethod
     def token_response(
@@ -59,6 +64,8 @@ class TokenResponse(ApiResponse[DataT]):
         access_token: str = None,
         token_type: str = None,
         user_id: UUID = None,
+        role: UserRole = None,
+        is_active: bool = None,
     ):
         return cls(
             success=True,
@@ -67,6 +74,8 @@ class TokenResponse(ApiResponse[DataT]):
             access_token=access_token,
             token_type=token_type,
             user_id=user_id,
+            role=role,
+            is_active=is_active,
         )
 
     class ConfigDict:
@@ -78,5 +87,7 @@ class TokenResponse(ApiResponse[DataT]):
                 "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
                 "token_type": "bearer",
                 "user_id": "e9f7d3e0-1c1a-4e5a-8f2a-0f8a6b6f1b2d",
+                "role": "USER",
+                "is_active": True,
             }
         }

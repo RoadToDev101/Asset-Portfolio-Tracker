@@ -71,7 +71,9 @@ export default function Login() {
         setMessage("Login successful! Redirecting to dashboard...");
         performLogin(
           response.data.access_token,
-          response.data.user_id.toString()
+          response.data.user_id.toString(),
+          response.data.role.toString(),
+          response.data.is_active
         );
       }
     } catch (err) {

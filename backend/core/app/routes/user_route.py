@@ -4,10 +4,10 @@ from app.dependencies import get_db
 from app.controllers.user_controller import UserController
 from app.schemas.user_schema import UserUpdate, UserOut
 from app.models.user_model import User as UserModel
-from app.utils.pagination import Pagination
+from app.schemas.pagination import Pagination
 from app.dependencies import get_current_user, get_current_active_admin
 from uuid import UUID
-from app.utils.api_response import ApiResponse
+from app.schemas.api_response import ApiResponse
 from app.utils.custom_exceptions import ForbiddenException
 
 router = APIRouter(

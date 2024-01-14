@@ -7,22 +7,25 @@ import {
 import { Button } from "@ui/button";
 import { Link } from "react-router-dom";
 
-const Header = () => {
+const PublicHeader = () => {
   return (
-    <header className="p-4 lg:px-8 h-16 grid grid-cols-3 items-center bg-gradient-to-r bg-secondary text-primary shadow-md fixed w-full top-0 z-50">
+    <header className="p-4 lg:px-8 h-16 grid grid-cols-3 items-center bg-secondary text-primary shadow-md fixed w-full top-0 z-50">
       <div className="flex items-center text-xl font-bold sm:block justify-start">
-        <Link aria-label="Homepage" to="/" className="flex items-center">
-          <img
-            src="/assets/icons/logo.svg"
-            alt="CryptoTracker"
-            width={30}
-            height={30}
-          />
-          <div className="pl-3">
-            <span>Portfolio Tracker</span>
+        <div className="flex items-center pr-3">
+          <Link aria-label="Homepage" to="/" className="flex items-center">
+            <img
+              src="/assets/icons/logo.svg"
+              alt="CryptoTracker"
+              width={30}
+              height={30}
+            />
+          </Link>
+          <div className="flex items-center pl-3">
+            <span className="hidden sm:block">Portfolio Tracker</span>{" "}
           </div>
-        </Link>
+        </div>
       </div>
+
       <nav className="flex justify-center items-center">
         <NavigationMenu>
           <NavigationMenuList>
@@ -68,4 +71,4 @@ const Header = () => {
   );
 };
 
-export default Header;
+export default PublicHeader;

@@ -13,9 +13,9 @@ from app.routes import (
     portfolio_route,
     transaction_route,
 )
-from app.database.database import init_db, engine
+from app.database.db_config import init_db, engine
 from fastapi.middleware.cors import CORSMiddleware
-from app.error_handling_middleware import exception_handling_middleware
+from app.middleware.error_handling_middleware import exception_handling_middleware
 from dotenv import load_dotenv
 import os
 
@@ -78,6 +78,12 @@ app.add_middleware(
 
 # Set up error handling middleware
 app.middleware("http")(exception_handling_middleware)
+
+
+@app.get("/")
+async def root():
+    return {"message": "Hello World"}
+
 
 # Include routers from the routes module
 app.include_router(user_route.router)

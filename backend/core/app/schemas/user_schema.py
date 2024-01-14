@@ -1,8 +1,7 @@
 from pydantic import BaseModel, EmailStr, Field
 from datetime import datetime
-from .portfolio_schema import PortfolioOut
 from uuid import UUID
-from typing import Optional, List
+from typing import Optional
 from app.models.user_model import UserRole
 
 
@@ -30,7 +29,6 @@ class UserOut(BaseModel):
     role: UserRole
     created_at: datetime
     updated_at: datetime
-    portfolios: List[PortfolioOut] = []
 
     class ConfigDict:
         orm_mode = True

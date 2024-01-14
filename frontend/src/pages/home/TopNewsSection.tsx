@@ -28,19 +28,33 @@ interface Article {
 
 const TopNewsSection = () => {
   const [news, setNews] = useState<Article[]>([]);
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
     const signal = controller.signal;
 
-    const fetchNews = async (retryCount = 0) => {
+    // Data is stale if older than 15 minutes
+    const isDataStale = (timestamp: number) => {
+      return new Date().getTime() - timestamp > 15 * 60 * 1000;
+    };
+
+    // Save the data to localStorage
+    const saveToLocalStorage = (data: Article[]) => {
+      const dataWithTimestamp = {
+        timestamp: new Date().getTime(),
+        data: data,
+      };
+      localStorage.setItem("breakingNews", JSON.stringify(dataWithTimestamp));
+    };
+
+    const fetchBreakingNews = async (retryCount = 0) => {
       try {
         // Check if the data is in localStorage
-        const cachedData = localStorage.getItem("news");
-        if (cachedData) {
-          setNews(JSON.parse(cachedData));
-          return; // If we have cached data, don't fetch new data
+        const cachedData = localStorage.getItem("breakingNews");
+        const cachedObject = cachedData ? JSON.parse(cachedData) : null;
+        if (cachedObject && !isDataStale(cachedObject.timestamp)) {
+          setNews(cachedObject.data);
+          return;
         }
 
         const response = await fetch(
@@ -53,47 +67,39 @@ const TopNewsSection = () => {
         if (!response.ok) {
           if (response.status === 429 && retryCount < 3) {
             // We hit the rate limit, retry after 1 minute
-            setTimeout(() => fetchNews(retryCount + 1), 60000);
+            setTimeout(
+              () => fetchBreakingNews(retryCount + 1),
+              Math.pow(2, retryCount) * 1000
+            );
             return;
           }
           throw new Error("API request failed");
         }
         const data = await response.json();
         setNews(data.articles);
-
-        // Save the data to localStorage
-        localStorage.setItem("news", JSON.stringify(data.articles));
-
-        // Update the last updated time
-        setLastUpdated(new Date());
-
-        // Remove the data from localStorage after 15 mins
-        setTimeout(() => {
-          localStorage.removeItem("news");
-        }, 15 * 60 * 1000);
+        saveToLocalStorage(data.articles);
       } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          return;
+        }
         console.error(error);
         if (retryCount < 3) {
-          setTimeout(() => fetchNews(retryCount + 1), 1000 * (retryCount + 1));
-        } else {
-          setNews([]);
+          setTimeout(
+            () => fetchBreakingNews(retryCount + 1),
+            Math.pow(2, retryCount) * 1000
+          );
         }
       }
     };
 
-    fetchNews();
-    const intervalId = setInterval(fetchNews, 15 * 60 * 1000); // 15 minutes
+    fetchBreakingNews();
+    const intervalId = setInterval(fetchBreakingNews, 15 * 60 * 1000); // 15 minutes
 
     return () => {
       clearInterval(intervalId);
       controller.abort();
     };
   }, []);
-
-  // Re-render the component when the last updated time changes
-  useEffect(() => {
-    setNews(JSON.parse(localStorage.getItem("news") || "[]"));
-  }, [lastUpdated]);
 
   return (
     <div className="w-full py-12 md:py-24 lg:py-32">

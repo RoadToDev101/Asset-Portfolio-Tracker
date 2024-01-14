@@ -5,35 +5,53 @@ import { useNavigate } from "react-router-dom";
 interface AuthState {
   token: string | null;
   user_id: string | null;
+  role: string | null;
+  is_active: boolean | null;
 }
 
 interface AuthContextProps {
   authState: AuthState;
-  performLogin: (token: string | null, user_id: string | null) => void;
+  performLogin: (
+    token: string | null,
+    user_id: string | null,
+    role: string | null,
+    is_active: boolean | null
+  ) => void;
   performLogout: () => void;
   updateAccessToken: (newToken: string) => void;
+  loading: boolean;
 }
 
 export const AuthContext = createContext<AuthContextProps>({
-  authState: { token: null, user_id: null },
+  authState: {
+    token: null,
+    user_id: null,
+    role: null,
+    is_active: null,
+  },
   performLogin: () => {},
   performLogout: () => {},
   updateAccessToken: () => {},
+  loading: true,
 });
 
 const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [authState, setAuthState] = useState<AuthState>({
-    token: null,
+    token: localStorage.getItem("token"),
     user_id: null,
+    role: null,
+    is_active: null,
   });
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const navigate = useNavigate();
 
   useEffect(() => {
     const checkSession = async () => {
-      // If we are logging out and the token is already null, do nothing
-      if (isLoggingOut || !authState.token) {
+      // If we're logging out, or the token is already null and never logging out, don't do anything
+      if (isLoggingOut || (!authState.token && !isLoggingOut)) {
+        setLoading(false);
         return;
       }
 
@@ -43,27 +61,41 @@ const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
           { withCredentials: true }
         );
         if (response.data.access_token) {
-          setAuthState({
+          setAuthState((prevState) => ({
+            ...prevState,
             token: response.data.access_token,
-            user_id: response.data.user_id.toString(),
-          });
+            user_id: response.data.user_id,
+            role: response.data.role,
+          }));
+          localStorage.setItem("token", response.data.access_token);
         }
       } catch (error) {
         navigate("/");
+      } finally {
+        setLoading(false);
       }
     };
 
     checkSession();
   }, [navigate, isLoggingOut, authState.token]);
 
-  const performLogin = (token: string | null, user_id: string | null) => {
-    setAuthState({ token, user_id });
+  const performLogin = (
+    token: string | null,
+    user_id: string | null,
+    role: string | null,
+    is_active: boolean | null
+  ) => {
+    setAuthState({ token, user_id, role, is_active });
+    if (token) {
+      localStorage.setItem("token", token);
+    }
     navigate("/dashboard");
   };
 
   const performLogout = () => {
     setIsLoggingOut(true);
-    setAuthState({ token: null, user_id: null });
+    setAuthState({ token: null, user_id: null, role: null, is_active: null });
+    localStorage.removeItem("token");
     navigate("/");
   };
 
@@ -72,11 +104,18 @@ const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
       ...prevState,
       token: newToken,
     }));
+    localStorage.setItem("token", newToken);
   };
 
   return (
     <AuthContext.Provider
-      value={{ authState, performLogin, performLogout, updateAccessToken }}
+      value={{
+        authState,
+        performLogin,
+        performLogout,
+        updateAccessToken,
+        loading,
+      }}
     >
       {children}
     </AuthContext.Provider>

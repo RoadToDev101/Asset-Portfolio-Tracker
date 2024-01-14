@@ -1,4 +1,4 @@
-from app.database.database import (
+from app.database.db_config import (
     create_db_connection,
     create_database_if_not_exists,
     init_engine_and_session,
