@@ -8,6 +8,69 @@ from app.models.user_model import User as UserModel
 from app.utils.common_utils import remove_private_attributes
 from uuid import UUID
 from app.utils.custom_exceptions import NotFoundException, BadRequestException
+from .transaction_controller import TransactionController
+from app.models.portfolio_model import AssetType
+from app.models.transaction_model import (
+    Transaction as TransactionModel,
+    TransactionType,
+)
+import httpx
+
+
+def get_ticker_current_price(transaction: TransactionModel) -> float:
+    if transaction.asset_type == AssetType.STOCKS:
+        raise NotImplementedError("Stocks not implemented yet")
+    elif transaction.asset_type == AssetType.CRYPTO:
+        currency = transaction.currency.lower()
+        # Fetch current price from CoinGecko API
+        url = f"https://api.coingecko.com/api/v3/simple/price?ids={transaction.asset_name}&vs_currencies={currency}"
+        response = httpx.get(url)
+        if response.status_code == 200:
+            data = response.json()
+            if (
+                transaction.asset_name in data
+                and currency in data[transaction.asset_name]
+            ):
+                return data[transaction.asset_name][currency]
+            else:
+                raise NotFoundException(
+                    "Price not found for the given asset and currency"
+                )
+        else:
+            raise BadRequestException("Failed to fetch price from CoinGecko API")
+    elif transaction.asset_type == AssetType.OTHERS:
+        raise NotImplementedError("Asset type not implemented yet")
+    else:
+        raise BadRequestException("Invalid asset type")
+
+
+def calculate_portfolio_value(db, portfolio_id) -> float:
+    # print(portfolio_id)
+    transactions = TransactionController.get_transactions_by_portfolio_id(
+        db, portfolio_id
+    )
+    # print(transactions)
+
+    if len(transactions[0]) == 0:
+        return 0
+
+    total_value = 0
+    for transaction in transactions[0]:
+        asset_current_market_price = get_ticker_current_price(transaction)
+        if (
+            transaction.transaction_type == TransactionType.BUY
+            or transaction.transaction_type == TransactionType.TRANSFER_IN
+        ):
+            total_value += transaction.amount * asset_current_market_price
+        elif (
+            transaction.transaction_type == TransactionType.SELL
+            or transaction.transaction_type == TransactionType.TRANSFER_OUT
+        ):
+            total_value -= transaction.amount * asset_current_market_price
+        else:
+            raise BadRequestException("Invalid transaction type")
+
+    return total_value
 
 
 class PortfolioController:
@@ -48,6 +111,8 @@ class PortfolioController:
         portfolio = db.query(PortfolioModel).get(portfolio_id)
         if portfolio is None:
             raise NotFoundException("Portfolio not found")
+
+        portfolio.current_value = calculate_portfolio_value(db, portfolio_id)
         portfolio_dict = remove_private_attributes(portfolio)
         portfolio_out = PortfolioOut.model_validate(portfolio_dict)
         return portfolio_out
@@ -60,6 +125,7 @@ class PortfolioController:
             portfolios = db.query(PortfolioModel).offset(skip).limit(limit).all()
             results = []
             for portfolio in portfolios:
+                portfolio.current_value = calculate_portfolio_value(db, portfolio.id)
                 portfolio_dict = remove_private_attributes(portfolio)
                 portfolio_out = PortfolioOut.model_validate(portfolio_dict)
                 results.append(portfolio_out)
@@ -81,6 +147,7 @@ class PortfolioController:
             )
             results = []
             for portfolio in portfolios:
+                portfolio.current_value = calculate_portfolio_value(db, portfolio.id)
                 portfolio_dict = remove_private_attributes(portfolio)
                 portfolio_out = PortfolioOut.model_validate(portfolio_dict)
                 results.append(portfolio_out)

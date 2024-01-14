@@ -1,8 +1,7 @@
 from pydantic import BaseModel, Field
 from datetime import datetime
 from uuid import UUID
-from .transaction_schema import TransactionOut
-from typing import Optional, List
+from typing import Optional
 from app.models.portfolio_model import AssetType
 
 
@@ -27,9 +26,9 @@ class PortfolioOut(BaseModel):
     description: Optional[str]
     user_id: UUID
     asset_type: AssetType
+    current_value: Optional[float] = None
     created_at: datetime
     updated_at: datetime
-    transactions: List[TransactionOut] = []
 
     class ConfigDict:
         from_attributes = True

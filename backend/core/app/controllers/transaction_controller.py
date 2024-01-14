@@ -5,6 +5,7 @@ from app.utils.common_utils import remove_private_attributes
 from uuid import UUID
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.dialects import postgresql
 from app.schemas.transaction_schema import (
     TransactionCreate,
     TransactionOut,
@@ -40,10 +41,11 @@ class TransactionController:
             )
 
         new_transaction = TransactionModel(
-            description=transaction.description,
+            note=transaction.note,
             transaction_type=transaction.transaction_type,
             asset_type=transaction.asset_type,
-            ticker=transaction.ticker,
+            ticker_symbol=transaction.ticker_symbol,
+            asset_name=transaction.asset_name,
             user_id=transaction.user_id,
             amount=transaction.amount,
             currency=transaction.currency,
@@ -86,10 +88,10 @@ class TransactionController:
         include_deleted: bool = False,
     ) -> Tuple[List[TransactionOut], int]:
         try:
-            query = db.query(TransactionModel)
-
-            if filter_condition:
-                query = query.filter(filter_condition)
+            if filter_condition is not None:
+                query = db.query(TransactionModel).filter(filter_condition)
+            else:
+                query = db.query(TransactionModel)
 
             if start_time and end_time:
                 query = query.filter(
@@ -112,6 +114,7 @@ class TransactionController:
 
             total = query.count()
             transactions = query.offset(skip).limit(limit).all()
+
             results = []
             for transaction in transactions:
                 transaction_dict = remove_private_attributes(transaction)
@@ -179,8 +182,10 @@ class TransactionController:
             db_transaction.description = transaction.description
         if transaction.transaction_type:
             db_transaction.transaction_type = transaction.transaction_type
-        if transaction.ticker:
-            db_transaction.ticker = transaction.ticker
+        if transaction.ticker_symbol:
+            db_transaction.ticker_symbol = transaction.ticker_symbol
+        if transaction.asset_name:
+            db_transaction.asset_name = transaction.asset_name
         if transaction.amount:
             db_transaction.amount = transaction.amount
         if transaction.currency:
