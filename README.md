@@ -13,11 +13,11 @@ This app help you track your asset portfolio. Everything from stocks, to crypto,
 
 - [x] Add asset portfolio tracking API
 - [x] Implement JWT authentication
-- [ ] Add asset portfolio tracking UI dashboard
+- [ ] UI for asset portfolio tracking
 - [ ] Admin dashboard
 - [ ] Add authorization
 - [ ] Caching for API
-- [ ] Implement OAuth2 authentication
+- [ ] Implement SSO with Google, Facebook, .etc
 - [ ] Notify price changes
 - [ ] Send monthly, weekly, daily report to user about their portfolio performance
 - [ ] Using AI to give insights about user portfolio
