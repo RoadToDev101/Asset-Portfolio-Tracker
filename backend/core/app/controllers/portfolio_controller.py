@@ -2,61 +2,34 @@ from typing import List
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from psycopg2.errors import UniqueViolation
-from app.schemas.portfolio_schema import PortfolioCreate, PortfolioUpdate, PortfolioOut
-from app.models.portfolio_model import Portfolio as PortfolioModel
+from collections import defaultdict
+from app.schemas.portfolio_schema import (
+    PortfolioCreate,
+    PortfolioUpdate,
+    PortfolioOut,
+    Asset,
+)
+from app.models.portfolio_model import Portfolio as PortfolioModel, AssetType
 from app.models.user_model import User as UserModel
-from app.utils.common_utils import remove_private_attributes
+from app.utils.convert import remove_private_attributes
 from uuid import UUID
 from app.utils.custom_exceptions import NotFoundException, BadRequestException
-from .transaction_controller import TransactionController
-from app.models.portfolio_model import AssetType
-from app.models.transaction_model import (
-    Transaction as TransactionModel,
-    TransactionType,
-)
-import httpx
-
-
-def get_ticker_current_price(transaction: TransactionModel) -> float:
-    if transaction.asset_type == AssetType.STOCKS:
-        raise NotImplementedError("Stocks not implemented yet")
-    elif transaction.asset_type == AssetType.CRYPTO:
-        currency = transaction.currency.lower()
-        # Fetch current price from CoinGecko API
-        url = f"https://api.coingecko.com/api/v3/simple/price?ids={transaction.asset_name}&vs_currencies={currency}"
-        response = httpx.get(url)
-        if response.status_code == 200:
-            data = response.json()
-            if (
-                transaction.asset_name in data
-                and currency in data[transaction.asset_name]
-            ):
-                return data[transaction.asset_name][currency]
-            else:
-                raise NotFoundException(
-                    "Price not found for the given asset and currency"
-                )
-        else:
-            raise BadRequestException("Failed to fetch price from CoinGecko API")
-    elif transaction.asset_type == AssetType.OTHERS:
-        raise NotImplementedError("Asset type not implemented yet")
-    else:
-        raise BadRequestException("Invalid asset type")
+from .transaction_controller import TransactionController, get_transaction_current_value
+from app.models.transaction_model import TransactionType
+from app.utils.fetch_price import fetch_crypto_price
 
 
 def calculate_portfolio_value(db, portfolio_id) -> float:
-    # print(portfolio_id)
     transactions = TransactionController.get_transactions_by_portfolio_id(
-        db, portfolio_id
+        db, portfolio_id, include_deleted=False
     )
-    # print(transactions)
 
     if len(transactions[0]) == 0:
         return 0
 
     total_value = 0
     for transaction in transactions[0]:
-        asset_current_market_price = get_ticker_current_price(transaction)
+        asset_current_market_price = get_transaction_current_value(transaction)
         if (
             transaction.transaction_type == TransactionType.BUY
             or transaction.transaction_type == TransactionType.TRANSFER_IN
@@ -71,6 +44,61 @@ def calculate_portfolio_value(db, portfolio_id) -> float:
             raise BadRequestException("Invalid transaction type")
 
     return total_value
+
+
+# List the asset in the portfolio and their current value
+def get_portfolio_assets(db, portfolio_id) -> List[Asset]:
+    transactions = TransactionController.get_transactions_by_portfolio_id(
+        db, portfolio_id
+    )
+
+    if len(transactions[0]) == 0:
+        return []
+
+    # Create a dictionary to hold the aggregated data for each asset
+    assets = defaultdict(lambda: {"quantity": 0, "ticker_symbol": "", "asset_type": ""})
+
+    for transaction in transactions[0]:
+        asset_name = transaction.asset_name
+
+        assets[asset_name]["ticker_symbol"] = transaction.ticker_symbol
+        assets[asset_name]["asset_type"] = transaction.asset_type
+
+        if transaction.transaction_type in [
+            TransactionType.BUY,
+            TransactionType.TRANSFER_IN,
+        ]:
+            assets[asset_name]["quantity"] += transaction.amount
+        elif transaction.transaction_type in [
+            TransactionType.SELL,
+            TransactionType.TRANSFER_OUT,
+        ]:
+            assets[asset_name]["quantity"] -= transaction.amount
+
+    # Convert the assets dictionary to a list of Asset objects
+    asset_objects = []
+    for asset_name, asset_data in assets.items():
+        if asset_data["asset_type"] == AssetType.STOCKS:
+            raise NotImplementedError("Stocks not implemented yet")
+        elif asset_data["asset_type"] == AssetType.CRYPTO:
+            asset_current_market_price = fetch_crypto_price(
+                asset_name.lower(), transaction.currency.lower()
+            )
+        elif asset_data["asset_type"] == AssetType.OTHERS:
+            raise NotImplementedError("Asset type not implemented yet")
+
+        asset_objects.append(
+            Asset(
+                asset_name=asset_name,
+                ticker_symbol=asset_data["ticker_symbol"],
+                asset_type=asset_data["asset_type"],
+                quantity=asset_data["quantity"],
+                average_price=transaction.unit_price,
+                total_value=asset_data["quantity"] * asset_current_market_price,
+            )
+        )
+
+    return asset_objects
 
 
 class PortfolioController:
@@ -126,6 +154,7 @@ class PortfolioController:
             results = []
             for portfolio in portfolios:
                 portfolio.current_value = calculate_portfolio_value(db, portfolio.id)
+                portfolio.assets = get_portfolio_assets(db, portfolio.id)
                 portfolio_dict = remove_private_attributes(portfolio)
                 portfolio_out = PortfolioOut.model_validate(portfolio_dict)
                 results.append(portfolio_out)
@@ -148,6 +177,7 @@ class PortfolioController:
             results = []
             for portfolio in portfolios:
                 portfolio.current_value = calculate_portfolio_value(db, portfolio.id)
+                portfolio.assets = get_portfolio_assets(db, portfolio.id)
                 portfolio_dict = remove_private_attributes(portfolio)
                 portfolio_out = PortfolioOut.model_validate(portfolio_dict)
                 results.append(portfolio_out)
