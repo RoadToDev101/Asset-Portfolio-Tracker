@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from app.dependencies import get_db
 from app.controllers.user_controller import UserController
 from app.schemas.user_schema import UserCreate
-from app.utils.api_response import TokenResponse
+from app.schemas.api_response import TokenResponse
 from app.schemas.access_token_schema import Payload
 from app.utils.custom_exceptions import ForbiddenException, NotFoundException
 

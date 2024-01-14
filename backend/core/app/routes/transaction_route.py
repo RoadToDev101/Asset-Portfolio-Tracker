@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, status, Query
 from app.dependencies import get_current_user, get_current_active_admin
-from app.utils.api_response import ApiResponse
+from app.schemas.api_response import ApiResponse
 from app.schemas.user_schema import UserOut
 from app.dependencies import get_db
 from sqlalchemy.orm import Session
@@ -14,7 +14,7 @@ from app.schemas.transaction_schema import (
 from app.models.transaction_model import Transaction as TransactionModel
 from uuid import UUID
 from app.utils.custom_exceptions import ForbiddenException
-from app.utils.pagination import Pagination
+from app.schemas.pagination import Pagination
 from datetime import datetime
 
 

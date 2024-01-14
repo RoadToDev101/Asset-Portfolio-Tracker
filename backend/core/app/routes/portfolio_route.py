@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, status, Query
 from app.dependencies import get_current_user, get_current_active_admin
-from app.utils.api_response import ApiResponse
-from app.utils.pagination import Pagination
+from app.schemas.api_response import ApiResponse
+from app.schemas.pagination import Pagination
 from app.schemas.portfolio_schema import PortfolioOut, PortfolioCreate, PortfolioUpdate
 from app.schemas.user_schema import UserOut
 from app.dependencies import get_db

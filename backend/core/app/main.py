@@ -15,7 +15,7 @@ from app.routes import (
 )
 from app.database.db_config import init_db, engine
 from fastapi.middleware.cors import CORSMiddleware
-from app.error_handling_middleware import exception_handling_middleware
+from app.middleware.error_handling_middleware import exception_handling_middleware
 from dotenv import load_dotenv
 import os
 
